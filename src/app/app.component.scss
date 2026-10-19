@@ -1,0 +1,120 @@
+@use "variables" as *;
+
+.viewport {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: color("bg-deep");
+}
+
+.header {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 20;
+
+  &__left,
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  &__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 42px;
+    padding: 4px 14px;
+    border-radius: radius("pill");
+  }
+
+  &__logo {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__logo-img {
+    height: 16px;
+    width: auto;
+    display: block;
+    user-select: none;
+  }
+
+  &__divider {
+    width: 1px;
+    height: 16px;
+    background: color("line-strong");
+  }
+
+  &__app-name {
+    margin: 0;
+    font-size: font-size("xs");
+    font-weight: font-weight("medium");
+    color: color("text-dim");
+  }
+
+  &__settings,
+  &__view {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: radius("pill");
+  }
+
+  &__view {
+    width: 180px;
+  }
+
+  @include respond-to("mobile") {
+    top: 10px;
+    left: 8px;
+    right: 8px;
+
+    &__app-name,
+    &__divider {
+      display: none;
+    }
+
+    &__view {
+      width: 140px;
+    }
+  }
+}
+
+.stage {
+  width: 100%;
+  height: 100%;
+}
+
+.dock-wrap {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.dock {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  width: min(720px, 100%);
+
+  &__slider {
+    flex: 1;
+  }
+}
