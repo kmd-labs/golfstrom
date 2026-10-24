@@ -1,18 +1,26 @@
 @let t = i18n.t();
 
+<app-splash></app-splash>
+
 <main class="viewport">
   <!-- Top HUD: Left Logotype + Language, Right View Switcher -->
   <header class="header">
     <div class="header__left">
-      <div class="header__brand glass-panel">
-        <div class="header__logo">
-          <img
-            class="header__logo-img"
-            src="assets/design-system/logo/kmd-black-orange.svg"
-            alt="KMD" />
-        </div>
-        <span class="header__divider" aria-hidden="true"></span>
-        <h1 class="header__app-name">Golfstrom</h1>
+      <div class="header__brand glass-panel" (click)="openAbout()">
+        <button
+          type="button"
+          class="header__brand-btn"
+          [attr.aria-label]="t.openAbout"
+          (click)="openAbout(); $event.stopPropagation()">
+          <span class="header__logo">
+            <img
+              class="header__logo-img"
+              src="assets/design-system/logo/kmd-black-orange.svg"
+              alt="KMD" />
+          </span>
+          <span class="header__divider" aria-hidden="true"></span>
+          <h1 class="header__app-name">Golfstrom</h1>
+        </button>
       </div>
 
       <div class="header__settings glass-panel" role="group" [attr.aria-label]="t.changeLanguage">

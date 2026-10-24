@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Globe, Activity, Layers, BookOpen } from 'lucide-angular';
 import {
@@ -9,7 +9,10 @@ import {
   PopupService,
   TimelineSliderComponent,
   TooltipComponent,
-  BreakpointService
+  BreakpointService,
+  SplashComponent,
+  SplashService,
+  AboutService
 } from '@kmd/design-system';
 import { I18nService } from './core/i18n/i18n.service';
 import { Lang } from './core/i18n/i18n.types';
@@ -24,21 +27,35 @@ import { Lang } from './core/i18n/i18n.types';
     DropdownComponent,
     PopupComponent,
     TimelineSliderComponent,
-    TooltipComponent
+    TooltipComponent,
+    SplashComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   readonly i18n = inject(I18nService);
   readonly bp = inject(BreakpointService);
   readonly popup = inject(PopupService);
+  readonly about = inject(AboutService);
+  readonly splash = inject(SplashService);
 
   readonly globeIcon = Globe;
   readonly bookOpenIcon = BookOpen;
 
   readonly currentView = signal<string>('primary');
   readonly sliderValue = signal<number>(0);
+
+  ngOnInit() {
+    setTimeout(() => {
+      this.splash.setProgress(100);
+      this.splash.finish();
+    }, 500);
+  }
+
+  openAbout() {
+    this.about.open({ lang: this.i18n.lang() });
+  }
 
   readonly langOptions = computed<DropdownOption<Lang>[]>(() =>
     this.i18n.langs.map(l => ({

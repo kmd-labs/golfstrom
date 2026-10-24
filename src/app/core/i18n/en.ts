@@ -11,6 +11,8 @@ export const EN: Dict = {
   viewPrimary: "Overview",
   viewSecondary: "Analysis",
   stageAriaLabel: "Golfstrom Visualization",
+  aboutUs: "About us",
+  openAbout: "About KMD",
 
   // Bottom Dock & Glossary
   timelineLabel: "Timeline",

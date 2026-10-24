@@ -15,6 +15,8 @@ export interface Dict {
   viewPrimary: string;
   viewSecondary: string;
   stageAriaLabel: string;
+  aboutUs: string;
+  openAbout: string;
 
   // Bottom Dock & Glossary
   timelineLabel: string;

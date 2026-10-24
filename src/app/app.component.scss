@@ -18,7 +18,7 @@
   align-items: center;
   gap: 12px;
   pointer-events: none;
-  z-index: 20;
+  z-index: 120; // Above popup-backdrop (z-index: 100)
 
   &__left,
   &__right {
@@ -31,10 +31,34 @@
   &__brand {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
     height: 42px;
-    padding: 4px 14px;
+    padding: 4px;
     border-radius: radius("pill");
+    cursor: pointer;
+    user-select: none;
+    transition: background transition("fast"), border-color transition("fast");
+
+    &:hover &__brand-btn {
+      background: color("btn-hover");
+    }
+  }
+
+  &__brand-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: radius("pill");
+    border: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    transition: background transition("fast");
+
+    &:hover {
+      background: color("btn-hover");
+    }
   }
 
   &__logo {
@@ -78,6 +102,17 @@
     top: 10px;
     left: 8px;
     right: 8px;
+
+    &__brand {
+      height: 38px;
+      padding: 3px;
+    }
+
+    &__brand-btn {
+      height: 32px;
+      padding: 0 8px;
+      gap: 6px;
+    }
 
     &__app-name,
     &__divider {

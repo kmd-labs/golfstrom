@@ -11,6 +11,8 @@ export const PL: Dict = {
   viewPrimary: 'Przegląd',
   viewSecondary: 'Analiza',
   stageAriaLabel: 'Wizualizacja Golfstrom',
+  aboutUs: 'O nas',
+  openAbout: 'O KMD',
 
   // Bottom Dock & Glossary
   timelineLabel: 'Oś czasu',
