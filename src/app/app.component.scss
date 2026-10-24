@@ -18,7 +18,18 @@
   align-items: center;
   gap: 12px;
   pointer-events: none;
-  z-index: 120; // Above popup-backdrop (z-index: 100)
+  z-index: 25;
+
+  &--popup-open {
+    z-index: 120;
+
+    .header__settings,
+    .header__view {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+  }
 
   &__left,
   &__right {
@@ -92,6 +103,7 @@
     align-items: center;
     padding: 4px;
     border-radius: radius("pill");
+    transition: opacity transition("fast"), visibility transition("fast");
   }
 
   &__view {

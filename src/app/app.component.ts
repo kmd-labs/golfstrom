@@ -46,6 +46,8 @@ export class AppComponent implements OnInit {
   readonly currentView = signal<string>('primary');
   readonly sliderValue = signal<number>(0);
 
+  readonly isPopupOpen = computed(() => this.popup.config() !== null);
+
   ngOnInit() {
     setTimeout(() => {
       this.splash.setProgress(100);

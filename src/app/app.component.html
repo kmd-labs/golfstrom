@@ -4,7 +4,7 @@
 
 <main class="viewport">
   <!-- Top HUD: Left Logotype + Language, Right View Switcher -->
-  <header class="header">
+  <header class="header" [class.header--popup-open]="isPopupOpen()">
     <div class="header__left">
       <div class="header__brand glass-panel" (click)="openAbout()">
         <button
