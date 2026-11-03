@@ -212,7 +212,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       40,
       this.canvasWidth / (this.canvasHeight || 1),
       0.1,
-      400
+      800
     );
 
     const isLand = isMobileLandscape();
@@ -291,6 +291,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
   /**
    * Soft bokeh background discs drifting in world space (matching el-nino).
+   * Sit beyond controls.maxDistance (100) so they drift past smoothly and never clip the camera or globe.
    */
   private initBokeh() {
     const c = document.createElement('canvas');
@@ -306,17 +307,17 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
 
-    const count = 180;
+    const count = 220;
     const pGeo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     const v = new THREE.Vector3();
     const tints = ['primary-200', 'info-200', 'primary-100', 'warning-100'];
-    const fallbacks = ['#bfdbfe', '#bae6fd', '#dbeafe', '#fbe8d0'];
+    const fallbacks = ['#bfdbfe', '#bae6fd', '#dbeafe', '#fed7aa'];
     const colors = tints.map((t, i) => new THREE.Color(this.theme.getTokenColor(t, fallbacks[i])));
 
     for (let i = 0; i < count; i++) {
-      v.randomDirection().multiplyScalar(60 + Math.random() * 90);
+      v.randomDirection().multiplyScalar(125 + Math.random() * 180);
       pos[i * 3] = v.x;
       pos[i * 3 + 1] = v.y;
       pos[i * 3 + 2] = v.z;
@@ -331,11 +332,11 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     const pMat = new THREE.PointsMaterial({
       map: tex,
-      size: 26,
+      size: 58,
       sizeAttenuation: true,
       vertexColors: true,
       transparent: true,
-      opacity: 0.24,
+      opacity: 0.32,
       depthWrite: false
     });
     const points = new THREE.Points(pGeo, pMat);
@@ -958,7 +959,9 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.tooltip.show(textFallback, sx, sy, 'top', 0, {
         html,
         noWrap: true,
-        interactive: false
+        interactive: true,
+        closable: true,
+        onClose: () => this.clearInspectedPoint()
       });
     });
   }
