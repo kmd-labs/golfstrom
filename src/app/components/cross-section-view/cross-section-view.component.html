@@ -1,29 +1,6 @@
 @let t = i18n.t();
-@let pair = activePair();
 
 <section class="cross-section" [attr.aria-label]="t.crossSectionAria">
-  <!-- Top Floating HUD: Live Transatlantic Thermal Contrast -->
-  <div class="cross-section__header glass-panel">
-    <div class="cross-section__stats">
-      <div class="cross-section__stat">
-        <span class="cross-section__stat-label">{{ getPairCityName(pair.cityAKey) }}:</span>
-        <span class="cross-section__stat-val">{{ westCityTempFormatted() }}</span>
-      </div>
-
-      <div class="cross-section__stat cross-section__stat--gs">
-        <lucide-icon [img]="flameIcon" [size]="14"></lucide-icon>
-        <span class="cross-section__stat-label">{{ t.gulfStreamPeak }}:</span>
-        <span class="cross-section__stat-val">{{ gulfStreamTempFormatted() }}</span>
-      </div>
-
-      <div class="cross-section__stat cross-section__stat--warm">
-        <span class="cross-section__stat-label">{{ getPairCityName(pair.cityBKey) }}:</span>
-        <span class="cross-section__stat-val">{{ eastCityTempFormatted() }}</span>
-        <app-badge [text]="'+' + tempDifferenceFormatted() + ' ' + t.regionEurope" backgroundColor="#d37400"></app-badge>
-      </div>
-    </div>
-  </div>
-
   <!-- Fullscreen 2D Canvas Stage -->
   <div #boxRef class="cross-section__box">
     <canvas
@@ -32,25 +9,20 @@
       (pointermove)="onPointerMove($event)"
       (pointerleave)="onPointerLeave()"></canvas>
 
-    <!-- Floating Anchored Gulf Stream Peak Callout Window -->
-    @if (peakX() > 0) {
-      <div
-        class="cross-section__callout glass-panel"
-        [style.left.px]="peakX()"
-        [style.top.px]="peakY()">
-        <div class="cross-section__callout-header">
-          <lucide-icon [img]="flameIcon" [size]="14" class="cross-section__callout-icon"></lucide-icon>
-          <span class="cross-section__callout-title">{{ t.gulfStreamPeak }}</span>
-          <span class="cross-section__callout-badge">{{ gulfStreamTempFormatted() }}</span>
-        </div>
-        <div class="cross-section__callout-anomaly">
-          <span>★ {{ t.anomLegendTitle }}: {{ gulfStreamAnomalyFormatted() }}</span>
-        </div>
-        <p class="cross-section__callout-desc">
-          {{ t.gulfStreamPeakDesc }}
-        </p>
+    <!-- Centered Gulf Stream Peak Callout Window -->
+    <div class="cross-section__callout glass-panel">
+      <div class="cross-section__callout-header">
+        <lucide-icon [img]="flameIcon" [size]="14" class="cross-section__callout-icon"></lucide-icon>
+        <span class="cross-section__callout-title">{{ t.gulfStreamPeak }}</span>
+        <span class="cross-section__callout-badge">{{ gulfStreamTempFormatted() }}</span>
       </div>
-    }
+      <div class="cross-section__callout-anomaly">
+        <span>★ {{ t.anomLegendTitle }}: {{ gulfStreamAnomalyFormatted() }}</span>
+      </div>
+      <p class="cross-section__callout-desc">
+        {{ t.gulfStreamPeakDesc }}
+      </p>
+    </div>
 
     <!-- Interactive Crosshair Tooltip -->
     @if (hoverInfo()) {

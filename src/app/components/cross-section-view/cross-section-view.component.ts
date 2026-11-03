@@ -12,7 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Wind, Flame } from 'lucide-angular';
 import { ThemeService } from '@kmd/design-system/services/theme.service';
-import { BadgeComponent } from '@kmd/design-system/ui/badge/badge.component';
+
 import { BreakpointService } from '@kmd/design-system';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { GolfstromStateService } from '../../core/services/golfstrom-state.service';
@@ -43,8 +43,7 @@ export interface CrossSectionHover {
   standalone: true,
   imports: [
     CommonModule,
-    LucideAngularModule,
-    BadgeComponent
+    LucideAngularModule
   ],
   templateUrl: './cross-section-view.component.html',
   styleUrl: './cross-section-view.component.scss'

@@ -205,6 +205,8 @@
             [max]="12"
             [step]="0.02"
             [value]="state.month()"
+            [trackGradient]="dynamicTimelineGradient()"
+            [style.--timeline-rail-bg]="dynamicTimelineGradient()"
             [ariaLabel]="t.timelineLabel"
             (valueChange)="state.setMonth($event)">
             <div timelineAction class="dock__play">
