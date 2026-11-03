@@ -22,6 +22,7 @@ import { SstDataService } from '../../core/services/sst-data.service';
 import { ThemeService } from '@kmd/design-system/services/theme.service';
 import { PopupService } from '@kmd/design-system/ui/popup/popup.service';
 import { TooltipService } from '@kmd/design-system/ui/tooltip/tooltip.service';
+import { isAtMost, isMobileLandscape } from '@kmd/design-system/utils/breakpoints';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { LATITUDE_PAIRS } from '../../core/constants/golfstrom-data';
 import { LatitudePairPin } from '../../core/models/golfstrom.model';
@@ -108,6 +109,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private canvasWidth = 1;
   private canvasHeight = 1;
   private pinElements: HTMLElement[] = [];
+  private lastLayoutMode: 'portrait' | 'landscape' | 'desktop' | null = null;
 
   private readonly pv = new THREE.Vector3();
   private readonly toCam = new THREE.Vector3();
@@ -191,14 +193,19 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       200
     );
 
-    // Initial camera position centered on North Atlantic (lon -40°, lat 38°)
-    this.math.pos(-40, 38, 22, this.camera.position);
+    const isLand = isMobileLandscape();
+    const portrait = !isLand && (this.canvasWidth / (this.canvasHeight || 1) < 0.95 || isAtMost('mobile'));
+    const initialDist = portrait ? 32 : isLand ? 23 : 27;
+    this.lastLayoutMode = isLand ? 'landscape' : portrait ? 'portrait' : 'desktop';
+
+    // Initial camera position centered on North Atlantic (lon -40°, lat 38°) - zoomed out for full basin context
+    this.math.pos(-40, 38, initialDist, this.camera.position);
 
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.minDistance = 11.0;
-    this.controls.maxDistance = 35.0;
+    this.controls.maxDistance = 50.0;
     this.controls.enablePan = false;
     this.controls.target.set(0, 0, 0);
     this.controls.update();
@@ -1131,7 +1138,18 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     this.canvasWidth = w;
     this.canvasHeight = h;
     this.pinElements = [];
+
+    const isLand = isMobileLandscape();
+    const portrait = !isLand && (w / (h || 1) < 0.95 || isAtMost('mobile'));
+    const layoutMode: 'portrait' | 'landscape' | 'desktop' = isLand ? 'landscape' : portrait ? 'portrait' : 'desktop';
+
     if (this.camera && this.renderer) {
+      if (this.lastLayoutMode && this.lastLayoutMode !== layoutMode) {
+        const targetDist = portrait ? 32 : isLand ? 23 : 27;
+        this.camera.position.setLength(targetDist);
+      }
+      this.lastLayoutMode = layoutMode;
+
       this.camera.aspect = w / (h || 1);
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(w, h, false);
