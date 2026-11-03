@@ -97,6 +97,9 @@ export interface Dict {
   westerliesLabel: string;
   heatReleaseLabel: string;
   crossSectionPairSelect: string;
+  selectTransect: string;
+  prevTransect: string;
+  nextTransect: string;
 
   // Globe Inspection Tooltip
   inspectWater: string;

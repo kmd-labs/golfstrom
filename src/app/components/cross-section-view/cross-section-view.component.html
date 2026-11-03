@@ -4,18 +4,53 @@
 <section class="cross-section" [attr.aria-label]="t.crossSectionAria">
   <!-- Top Floating HUD: Pair Switcher & Live Thermal Contrast -->
   <div class="cross-section__header glass-panel">
-    <div class="cross-section__pairs" role="group" [attr.aria-label]="t.crossSectionPairSelect">
-      @for (p of pairs; track p.id) {
-        <app-button
-          variant="toggle"
+    <div class="cross-section__transect-nav" role="group" [attr.aria-label]="t.crossSectionPairSelect">
+      <button
+        type="button"
+        class="cross-section__nav-btn"
+        [attr.aria-label]="t.prevTransect"
+        [title]="t.prevTransect"
+        (click)="state.prevPair()">
+        <lucide-icon [img]="chevronLeft" [size]="16"></lucide-icon>
+      </button>
+
+      <!-- Dropdown on compact screens / Tablet / Mobile -->
+      @if (bp.tablet()) {
+        <app-dropdown
+          variant="default"
           size="sm"
-          [active]="p.id === pair.id"
-          (btnClick)="selectPair(p)">
-          {{ getPairCityName(p.cityAKey) }} ↔ {{ getPairCityName(p.cityBKey) }} ({{ p.lat.toFixed(0) }}°N)
-        </app-button>
+          [options]="pairOptions()"
+          [value]="pair.id"
+          [ariaLabel]="t.crossSectionPairSelect"
+          (valueChange)="selectPairById($event)">
+        </app-dropdown>
+      } @else {
+        <!-- Segmented Toggle Pills on Desktop -->
+        <div class="cross-section__pairs">
+          @for (p of pairs; track p.id) {
+            <app-button
+              variant="toggle"
+              size="sm"
+              [active]="p.id === pair.id"
+              (btnClick)="selectPair(p)">
+              <span class="cross-section__pair-lat">{{ p.lat.toFixed(0) }}°N:</span>
+              <span class="cross-section__pair-name">{{ getPairCityName(p.cityAKey) }} ↔ {{ getPairCityName(p.cityBKey) }}</span>
+            </app-button>
+          }
+        </div>
       }
+
+      <button
+        type="button"
+        class="cross-section__nav-btn"
+        [attr.aria-label]="t.nextTransect"
+        [title]="t.nextTransect"
+        (click)="state.nextPair()">
+        <lucide-icon [img]="chevronRight" [size]="16"></lucide-icon>
+      </button>
     </div>
 
+    <!-- Live Transatlantic Temperature Readout -->
     <div class="cross-section__stats">
       <div class="cross-section__stat">
         <span class="cross-section__stat-label">{{ getPairCityName(pair.cityAKey) }}:</span>
@@ -38,7 +73,11 @@
 
   <!-- Fullscreen 2D Canvas Stage -->
   <div #boxRef class="cross-section__box">
-    <canvas #canvasRef id="cv"></canvas>
+    <canvas
+      #canvasRef
+      id="cv"
+      (pointermove)="onPointerMove($event)"
+      (pointerleave)="onPointerLeave()"></canvas>
 
     <!-- Floating Anchored Gulf Stream Peak Callout Window -->
     @if (peakX() > 0) {
@@ -57,6 +96,30 @@
         <p class="cross-section__callout-desc">
           {{ t.gulfStreamPeakDesc }}
         </p>
+      </div>
+    }
+
+    <!-- Interactive Crosshair Tooltip -->
+    @if (hoverInfo()) {
+      <div
+        class="cross-section__hover-tooltip glass-panel"
+        [style.left.px]="hoverInfo()!.x"
+        [style.top.px]="hoverInfo()!.y">
+        <div class="cross-section__hover-title">
+          <span>{{ Math.abs(hoverInfo()!.lon).toFixed(1) }}°{{ hoverInfo()!.lon < 0 ? 'W' : 'E' }}</span>
+          @if (hoverInfo()!.feature) {
+            <span class="cross-section__hover-feat">· {{ hoverInfo()!.feature }}</span>
+          }
+        </div>
+        <div class="cross-section__hover-metrics">
+          @if (hoverInfo()!.isOcean) {
+            <span class="cross-section__hover-tag">🌊 {{ hoverInfo()!.depthM }} m</span>
+            <span class="cross-section__hover-val">{{ hoverInfo()!.temp > 0 ? '+' : '' }}{{ hoverInfo()!.temp.toFixed(1) }}°C</span>
+          } @else {
+            <span class="cross-section__hover-tag">☁ {{ hoverInfo()!.altKm.toFixed(1) }} km</span>
+            <span class="cross-section__hover-val">{{ hoverInfo()!.temp > 0 ? '+' : '' }}{{ hoverInfo()!.temp.toFixed(1) }}°C</span>
+          }
+        </div>
       </div>
     }
   </div>

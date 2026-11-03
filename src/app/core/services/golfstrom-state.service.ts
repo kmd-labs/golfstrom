@@ -55,4 +55,25 @@ export class GolfstromStateService {
   selectPair(pair: LatitudePairPin) {
     this.selectedPair.set(pair);
   }
+
+  selectPairById(id: string) {
+    const pair = LATITUDE_PAIRS.find(p => p.id === id);
+    if (pair) {
+      this.selectedPair.set(pair);
+    }
+  }
+
+  nextPair() {
+    const cur = this.selectedPair();
+    const idx = LATITUDE_PAIRS.findIndex(p => p.id === cur.id);
+    const next = LATITUDE_PAIRS[(idx + 1) % LATITUDE_PAIRS.length];
+    this.selectedPair.set(next);
+  }
+
+  prevPair() {
+    const cur = this.selectedPair();
+    const idx = LATITUDE_PAIRS.findIndex(p => p.id === cur.id);
+    const prev = LATITUDE_PAIRS[(idx - 1 + LATITUDE_PAIRS.length) % LATITUDE_PAIRS.length];
+    this.selectedPair.set(prev);
+  }
 }

@@ -42,10 +42,10 @@
           align="right"
           [fullWidth]="true"
           [options]="viewOptions()"
-          [value]="state.viewMode()"
+          [value]="currentViewValue()"
           [icon]="currentViewIcon()"
           [ariaLabel]="t.chooseView"
-          (valueChange)="state.setViewMode($event)">
+          (valueChange)="onViewChange($event)">
         </app-dropdown>
       </div>
     </div>

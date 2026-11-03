@@ -31,7 +31,7 @@ import { GlobeComponent } from './components/globe/globe.component';
 import { CrossSectionViewComponent } from './components/cross-section-view/cross-section-view.component';
 import { GlossaryComponent } from './components/glossary/glossary.component';
 import { ViewMode } from './core/models/golfstrom.model';
-import { PLAYBACK_SPEEDS } from './core/constants/golfstrom-data';
+import { LATITUDE_PAIRS, PLAYBACK_SPEEDS } from './core/constants/golfstrom-data';
 
 @Component({
   selector: 'app-root',
@@ -85,17 +85,42 @@ export class AppComponent implements OnInit {
     }))
   );
 
-  readonly viewOptions = computed<DropdownOption<ViewMode>[]>(() => {
+  readonly currentViewValue = computed<string>(() => {
+    if (this.state.viewMode() === 'globe') return 'globe';
+    return `cross-section:${this.state.selectedPair().id}`;
+  });
+
+  readonly viewOptions = computed<DropdownOption<string>[]>(() => {
     const t = this.i18n.t();
-    return [
-      { value: 'globe', label: t.viewPrimary, icon: Globe },
-      { value: 'cross-section', label: t.viewSecondary, icon: Activity }
+    const options: DropdownOption<string>[] = [
+      { value: 'globe', label: t.viewPrimary, icon: Globe }
     ];
+    for (const p of LATITUDE_PAIRS) {
+      const cityA = (t as any)[p.cityAKey] || p.cityAKey;
+      const cityB = (t as any)[p.cityBKey] || p.cityBKey;
+      options.push({
+        value: `cross-section:${p.id}`,
+        label: `${p.lat.toFixed(0)}°N: ${cityA} ↔ ${cityB}`,
+        icon: Activity,
+        badge: `${p.lat.toFixed(0)}°N`
+      });
+    }
+    return options;
   });
 
   readonly currentViewIcon = computed(
-    () => this.viewOptions().find(o => o.value === this.state.viewMode())?.icon ?? Globe
+    () => this.viewOptions().find(o => o.value === this.currentViewValue())?.icon ?? Globe
   );
+
+  onViewChange(value: string) {
+    if (value === 'globe') {
+      this.state.setViewMode('globe');
+    } else if (value.startsWith('cross-section:')) {
+      const id = value.split(':')[1];
+      this.state.selectPairById(id);
+      this.state.setViewMode('cross-section');
+    }
+  }
 
   /** Current day and month for the top-left date pill (e.g. "15 Jan" or "15 Sty") */
   readonly currentDateLabel = computed(() => {

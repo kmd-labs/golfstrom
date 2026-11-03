@@ -112,6 +112,9 @@ export const PL: Dict = {
   westerliesLabel: 'Dominujące wiatry zachodnie ➔',
   heatReleaseLabel: 'Strumień ciepła jawnego i utajonego ⬆',
   crossSectionPairSelect: 'Wybierz profil szerokości:',
+  selectTransect: 'Wybierz profil',
+  prevTransect: 'Poprzedni profil',
+  nextTransect: 'Następny profil',
 
   // Globe Inspection Tooltip
   inspectWater: 'Temp. wody (SST)',

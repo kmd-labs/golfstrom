@@ -112,6 +112,9 @@ export const EN: Dict = {
   westerliesLabel: 'Prevailing Westerly Winds ➔',
   heatReleaseLabel: 'Latent & Sensible Heat Flux ⬆',
   crossSectionPairSelect: 'Select Latitude Transect:',
+  selectTransect: 'Select Transect',
+  prevTransect: 'Previous Transect',
+  nextTransect: 'Next Transect',
 
   // Globe Inspection Tooltip
   inspectWater: 'Sea Temp (SST)',

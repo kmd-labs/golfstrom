@@ -9,6 +9,13 @@ export interface IslandFeature {
   depthM: number;
 }
 
+export interface BathymetryPoint {
+  lon: number;
+  depthM: number;
+  elevM: number;
+  labelKey?: string;
+}
+
 export interface LatitudePairPin {
   id: string;
   lat: number;
@@ -28,6 +35,7 @@ export interface LatitudePairPin {
   gsJulTemp: number;
   // Islands & submarine ridge features along the transect
   islands: IslandFeature[];
+  bathymetry?: BathymetryPoint[];
   // Educational narrative
   titleKey: string;
   descKey: string;

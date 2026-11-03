@@ -14,6 +14,9 @@ import { LucideAngularModule, ChevronLeft, ChevronRight, Wind, Flame } from 'luc
 import { ThemeService } from '@kmd/design-system/services/theme.service';
 import { ButtonComponent } from '@kmd/design-system/ui/button/button.component';
 import { BadgeComponent } from '@kmd/design-system/ui/badge/badge.component';
+import { DropdownComponent } from '@kmd/design-system/ui/dropdown/dropdown.component';
+import { DropdownOption } from '@kmd/design-system/ui/dropdown/dropdown.model';
+import { BreakpointService } from '@kmd/design-system';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { GolfstromStateService } from '../../core/services/golfstrom-state.service';
 import { GolfstromMathService } from '../../core/services/golfstrom-math.service';
@@ -27,10 +30,27 @@ interface WindParticle {
   speed: number;
 }
 
+export interface CrossSectionHover {
+  x: number;
+  y: number;
+  lon: number;
+  isOcean: boolean;
+  depthM: number;
+  altKm: number;
+  temp: number;
+  feature?: string;
+}
+
 @Component({
   selector: 'app-cross-section-view',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, ButtonComponent, BadgeComponent],
+  imports: [
+    CommonModule,
+    LucideAngularModule,
+    ButtonComponent,
+    BadgeComponent,
+    DropdownComponent
+  ],
   templateUrl: './cross-section-view.component.html',
   styleUrl: './cross-section-view.component.scss'
 })
@@ -43,15 +63,31 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
   readonly state = inject(GolfstromStateService);
   readonly math = inject(GolfstromMathService);
   readonly sstData = inject(SstDataService);
+  readonly bp = inject(BreakpointService);
   readonly Math = Math;
   private readonly ngZone = inject(NgZone);
 
   readonly pairs = LATITUDE_PAIRS;
   readonly windIcon = Wind;
   readonly flameIcon = Flame;
+  readonly chevronLeft = ChevronLeft;
+  readonly chevronRight = ChevronRight;
 
   // Active pair details
   readonly activePair = computed(() => this.state.selectedPair());
+
+  readonly pairOptions = computed<DropdownOption<string>[]>(() => {
+    const t = this.i18n.t();
+    return this.pairs.map(p => {
+      const cityA = (t as any)[p.cityAKey] || p.cityAKey;
+      const cityB = (t as any)[p.cityBKey] || p.cityBKey;
+      return {
+        value: p.id,
+        label: `${p.lat.toFixed(0)}°N: ${cityA} ↔ ${cityB}`,
+        badge: `${p.lat.toFixed(0)}°N`
+      };
+    });
+  });
 
   // West city live temperature
   readonly westCityTemp = computed(() => {
@@ -80,7 +116,6 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
   // Gulf stream thermal anomaly above latitude average
   readonly gulfStreamAnomaly = computed(() => {
     const pair = this.activePair();
-    const m = this.state.month();
     const gsT = this.gulfStreamTemp();
     const zonal = 28.5 * Math.cos(Math.abs(pair.lat) * (Math.PI / 150)) - 2.0;
     return Math.max(0, gsT - zonal);
@@ -93,20 +128,23 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
   // Westerly wind particles
   private windParticles: WindParticle[] = [];
 
-  // Ocean image buffer
+  // High resolution ocean image buffer (360x90)
   private oceanCanvas = document.createElement('canvas');
   private oceanImg: ImageData | null = null;
   private lastOceanKey = '';
 
   // Peak callout screen position
-  peakX = signal<number>(0);
-  peakY = signal<number>(0);
+  readonly peakX = signal<number>(0);
+  readonly peakY = signal<number>(0);
+
+  // Interactive hover inspection crosshair
+  readonly hoverInfo = signal<CrossSectionHover | null>(null);
 
   ngAfterViewInit() {
     this.ctx = this.canvasRef.nativeElement.getContext('2d')!;
-    this.oceanCanvas.width = 160;
-    this.oceanCanvas.height = 40;
-    this.oceanImg = this.oceanCanvas.getContext('2d')!.createImageData(160, 40);
+    this.oceanCanvas.width = 360;
+    this.oceanCanvas.height = 90;
+    this.oceanImg = this.oceanCanvas.getContext('2d')!.createImageData(360, 90);
 
     this.initWindParticles();
 
@@ -144,6 +182,10 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     this.state.selectPair(pair);
   }
 
+  selectPairById(id: string) {
+    this.state.selectPairById(id);
+  }
+
   getPairCityName(key: string): string {
     const t = this.i18n.t();
     return (t as any)[key] || key;
@@ -158,6 +200,73 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  onPointerMove(e: PointerEvent) {
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const W = rect.width;
+    const H = rect.height;
+    const seaY = H * 0.52;
+    const skyH = seaY;
+    const oceanH = H - seaY;
+
+    const mLeft = Math.max(50, W * 0.06);
+    const mRight = Math.max(50, W * 0.06);
+    const plotW = W - mLeft - mRight;
+
+    if (x < mLeft || x > mLeft + plotW) {
+      this.hoverInfo.set(null);
+      return;
+    }
+
+    const pair = this.state.selectedPair();
+    const month = this.state.month();
+    const lonA = pair.lonA;
+    const lonSpan = pair.lonB - pair.lonA;
+
+    const u = (x - mLeft) / plotW;
+    const lon = lonA + u * lonSpan;
+    const bathy = this.sampleBathymetry(pair, lon);
+
+    let isOcean = y >= seaY;
+    let depthM = 0;
+    let altKm = 0;
+    let temp = 0;
+
+    if (isOcean) {
+      const dNorm = Math.min(1, Math.max(0, (y - seaY) / (oceanH - 25)));
+      depthM = Math.round(dNorm * 4000);
+      temp = this.sampleWaterTemp(pair, lon, depthM, month);
+    } else {
+      const aNorm = Math.min(1, Math.max(0, (seaY - y) / (skyH - 30)));
+      altKm = Math.round(aNorm * 12 * 10) / 10;
+      const sst = this.sstData.sampleRealSst(lon, pair.lat, month) ?? this.math.getSst(lon, pair.lat, month);
+      // Environmental lapse rate ~6.5°C per km
+      temp = Math.round((sst - altKm * 6.5) * 10) / 10;
+    }
+
+    let featureName: string | undefined = undefined;
+    if (bathy.labelKey) {
+      featureName = (this.i18n.t() as any)[bathy.labelKey] || bathy.labelKey;
+    }
+
+    this.hoverInfo.set({
+      x,
+      y,
+      lon,
+      isOcean,
+      depthM,
+      altKm,
+      temp,
+      feature: featureName
+    });
+  }
+
+  onPointerLeave() {
+    this.hoverInfo.set(null);
   }
 
   private animate = (now: number) => {
@@ -175,6 +284,61 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     this.draw(dt);
   };
 
+  /**
+   * Smooth Hermite cubic interpolation through realistic transatlantic bathymetry anchors.
+   */
+  sampleBathymetry(pair: LatitudePairPin, lon: number): { depthM: number; elevM: number; labelKey?: string } {
+    const anchors = pair.bathymetry;
+    if (!anchors || anchors.length === 0) {
+      return { depthM: 4000, elevM: 0 };
+    }
+    if (lon <= anchors[0].lon) {
+      return { depthM: anchors[0].depthM, elevM: anchors[0].elevM, labelKey: anchors[0].labelKey };
+    }
+    const last = anchors[anchors.length - 1];
+    if (lon >= last.lon) {
+      return { depthM: last.depthM, elevM: last.elevM, labelKey: last.labelKey };
+    }
+
+    for (let i = 0; i < anchors.length - 1; i++) {
+      const a = anchors[i];
+      const b = anchors[i + 1];
+      if (lon >= a.lon && lon <= b.lon) {
+        const u = (lon - a.lon) / (b.lon - a.lon);
+        const s = u * u * (3 - 2 * u);
+        const depthM = a.depthM + (b.depthM - a.depthM) * s;
+        const elevM = a.elevM + (b.elevM - a.elevM) * s;
+        const labelKey = u < 0.25 ? a.labelKey : (u > 0.75 ? b.labelKey : undefined);
+        return { depthM, elevM, labelKey };
+      }
+    }
+    return { depthM: 4000, elevM: 0 };
+  }
+
+  /**
+   * Scientifically grounded ocean thermal structure:
+   * Models the asymmetric western boundary Gulf Stream "Cold Wall",
+   * deep warm subtropical lens, and double-exponential thermocline decay.
+   */
+  sampleWaterTemp(pair: LatitudePairPin, lon: number, depthM: number, month: number): number {
+    const sst = this.sstData.sampleRealSst(lon, pair.lat, month) ?? this.math.getSst(lon, pair.lat, month);
+    const dGs = Math.abs(lon - pair.gsLon);
+    const isGsCore = dGs < 3.0;
+    const isGsFlank = dGs < 8.0;
+
+    let thermoclineZ = 240;
+    if (isGsCore) {
+      thermoclineZ = 580;
+    } else if (isGsFlank) {
+      const wFactor = lon > pair.gsLon ? 0.9 : 0.45;
+      thermoclineZ = 240 + (580 - 240) * Math.max(0, 1 - dGs / 8.0) * wFactor;
+    }
+
+    const decay = 0.68 * Math.exp(-depthM / thermoclineZ) + 0.32 * Math.exp(-depthM / 1250);
+    const abyssalT = 2.0;
+    return abyssalT + (sst - abyssalT) * decay;
+  }
+
   private draw(dt: number) {
     const rect = this.boxRef?.nativeElement.getBoundingClientRect();
     if (!rect || rect.width <= 0 || rect.height <= 0) return;
@@ -190,10 +354,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     const font = this.theme.getFontFamily();
     const t = this.i18n.t();
 
-    // Layout geometry:
-    // Top 52% Atmosphere (0 to 12 km altitude)
-    // Sea surface at seaY
-    // Bottom 48% Ocean depth (0 to 4000 m depth)
+    // Layout geometry
     const seaY = H * 0.52;
     const skyH = seaY;
     const oceanH = H - seaY;
@@ -218,58 +379,139 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, W, seaY);
 
-    // 2. Draw Ocean Temperature Cross-Section Texture
+    // 2. Draw High-Resolution Ocean Temperature Cross-Section Texture
     this.renderOceanBuffer(pair, month, mode);
     ctx.drawImage(this.oceanCanvas, mLeft, seaY, plotW, oceanH - 25);
 
-    // 3. Bathymetry Bedrock Profile (Continental shelves & Mid-Atlantic Ridge)
-    ctx.beginPath();
-    ctx.moveTo(mLeft, H);
-    // West Shelf
-    ctx.lineTo(mLeft, depthToY(120));
-    ctx.lineTo(lonToX(lonA + 2.5), depthToY(250));
-    ctx.lineTo(lonToX(lonA + 5.5), depthToY(3800));
+    // 3. Precise High-Resolution Bathymetry & Island Bedrock Profile (180 points)
+    const nBathyPts = 180;
+    const bathyPoints: { x: number; y: number; depthM: number; elevM: number }[] = [];
 
-    // Abyssal plain West
-    const ridgeLon = pair.islands.length > 0 ? pair.islands[0].lon : (lonA + lonB) / 2;
-    ctx.lineTo(lonToX(ridgeLon - 8), depthToY(4200));
-
-    // Mid-Atlantic Ridge & Island Peaks
-    for (const isl of pair.islands) {
-      const ix = lonToX(isl.lon);
-      ctx.lineTo(ix - 24, depthToY(isl.depthM > 0 ? isl.depthM + 600 : 1200));
-      // Peak: if island rises above sea level, draw it above seaY
-      const peakY = isl.elevM > 0 ? altToY(Math.min(isl.elevM / 1000, 3.5)) : depthToY(isl.depthM);
-      ctx.lineTo(ix, peakY);
-      ctx.lineTo(ix + 24, depthToY(isl.depthM > 0 ? isl.depthM + 600 : 1200));
+    for (let i = 0; i <= nBathyPts; i++) {
+      const u = i / nBathyPts;
+      const lon = lonA + u * lonSpan;
+      const bx = mLeft + u * plotW;
+      const bathy = this.sampleBathymetry(pair, lon);
+      let by: number;
+      if (bathy.elevM > 0) {
+        by = altToY(Math.min(bathy.elevM / 1000, 3.8));
+      } else {
+        by = depthToY(bathy.depthM);
+      }
+      bathyPoints.push({ x: bx, y: by, depthM: bathy.depthM, elevM: bathy.elevM });
     }
 
-    // Abyssal plain East
-    ctx.lineTo(lonToX(lonB - 5.5), depthToY(4000));
-    ctx.lineTo(lonToX(lonB - 2.5), depthToY(200));
-    ctx.lineTo(lonToX(lonB), depthToY(80));
+    // Fill bedrock with geological lithosphere gradient
+    ctx.beginPath();
+    ctx.moveTo(mLeft, H);
+    for (const pt of bathyPoints) {
+      ctx.lineTo(pt.x, pt.y);
+    }
     ctx.lineTo(mLeft + plotW, H);
     ctx.closePath();
 
-    ctx.fillStyle = '#94a3b8';
+    const rockGrad = ctx.createLinearGradient(0, seaY, 0, H);
+    rockGrad.addColorStop(0, '#334155');
+    rockGrad.addColorStop(0.35, '#1e293b');
+    rockGrad.addColorStop(1, '#0f172a');
+    ctx.fillStyle = rockGrad;
     ctx.fill();
-    ctx.strokeStyle = '#475569';
-    ctx.lineWidth = 1.5;
+
+    // Top lithosphere stroke
+    ctx.beginPath();
+    for (let i = 0; i < bathyPoints.length; i++) {
+      const pt = bathyPoints[i];
+      if (i === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // 4. Sea Surface Line
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.4)';
+    // Subtle geological strata lines inside bedrock
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    for (let sy = seaY + 30; sy < H; sy += 35) {
+      ctx.beginPath();
+      ctx.moveTo(mLeft, sy);
+      ctx.lineTo(mLeft + plotW, sy + 15);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 4. Scientifically Precise Isotherms (20°C, 15°C, 10°C, 5°C)
+    const isotherms = [20, 15, 10, 5];
+    ctx.font = `600 10px ${font}`;
+
+    for (const isoT of isotherms) {
+      ctx.beginPath();
+      let started = false;
+      let labelPlaced = false;
+
+      for (let i = 0; i <= 60; i++) {
+        const u = i / 60;
+        const lon = lonA + u * lonSpan;
+        const x = mLeft + u * plotW;
+        const bathy = this.sampleBathymetry(pair, lon);
+
+        let isoZ = -1;
+        const surfaceT = this.sampleWaterTemp(pair, lon, 0, month);
+        const bottomT = this.sampleWaterTemp(pair, lon, Math.min(4000, bathy.depthM), month);
+
+        if (surfaceT >= isoT && bottomT <= isoT) {
+          let loZ = 0;
+          let hiZ = Math.min(4000, bathy.depthM);
+          for (let iter = 0; iter < 12; iter++) {
+            const midZ = (loZ + hiZ) * 0.5;
+            if (this.sampleWaterTemp(pair, lon, midZ, month) >= isoT) {
+              loZ = midZ;
+            } else {
+              hiZ = midZ;
+            }
+          }
+          isoZ = (loZ + hiZ) * 0.5;
+        }
+
+        if (isoZ > 0 && isoZ < bathy.depthM) {
+          const y = depthToY(isoZ);
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else {
+            ctx.lineTo(x, y);
+          }
+
+          if (!labelPlaced && u > 0.45 && u < 0.65) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.fillText(`${isoT}°C`, x, y - 4);
+            labelPlaced = true;
+          }
+        } else {
+          started = false;
+        }
+      }
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // 5. Sea Surface Line
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.45)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(mLeft, seaY);
     ctx.lineTo(mLeft + plotW, seaY);
     ctx.stroke();
 
-    // 5. Gulf Stream Heat Plume & Rising Heat Flux Vectors
+    // 6. Gulf Stream Heat Plume & Rising Heat Flux Vectors
     const gsX = lonToX(pair.gsLon);
     const plumeW = plotW * 0.16;
 
-    // Heat release vectors
     ctx.save();
     for (let off = -plumeW * 0.4; off <= plumeW * 0.4; off += plumeW * 0.25) {
       const vx = gsX + off;
@@ -288,7 +530,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     }
     ctx.restore();
 
-    // 6. Prevailing Westerlies Streamlines in Atmosphere
+    // 7. Prevailing Westerlies Streamlines in Atmosphere
     for (const p of this.windParticles) {
       p.xPct = (p.xPct + p.speed * dt * 0.25) % 1.0;
       const wx = mLeft + p.xPct * plotW;
@@ -307,32 +549,24 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       ctx.fill();
     }
 
-    // 7. Surface / 2m Air Temperature Curve across Atlantic
+    // 8. Surface / 2m Air Temperature Curve across Atlantic
     ctx.beginPath();
     const tempCurvePts: [number, number][] = [];
-    const nPts = 50;
-    let minT = 999;
-    let maxT = -999;
+    const nPts = 60;
 
     for (let i = 0; i <= nPts; i++) {
       const u = i / nPts;
       const lon = lonA + u * lonSpan;
       const px = mLeft + u * plotW;
 
-      // Sample temperature: combines seasonal baseline with prominent Gulf Stream warm tongue
       const sst = this.sstData.sampleRealSst(lon, pair.lat, month);
       const air = this.sstData.sampleRealAir(lon, pair.lat, month);
       const tVal = sst !== null ? sst : (air !== null ? air : 10);
 
-      // Distance to Gulf Stream core
       const dGs = Math.abs(lon - pair.gsLon);
-      const gsBoost = Math.max(0, 1 - dGs / 12) * (pair.lat < 55 ? 6 : 4);
+      const gsBoost = Math.max(0, 1 - dGs / 12) * (pair.lat < 55 ? 5.5 : 3.8);
       const finalT = tVal + gsBoost;
 
-      minT = Math.min(minT, finalT);
-      maxT = Math.max(maxT, finalT);
-
-      // Map temperature to Y inside upper 30% of atmosphere
       const py = altToY(3.5 + Math.max(-10, Math.min(30, finalT)) * 0.22);
       tempCurvePts.push([px, py]);
 
@@ -344,7 +578,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     ctx.lineWidth = 2.8;
     ctx.stroke();
 
-    // 8. Grid & Depth Labels
+    // 9. Grid & Depth Labels
     ctx.font = `500 11px ${font}`;
     ctx.fillStyle = '#64748b';
     ctx.textAlign = 'right';
@@ -352,7 +586,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     const depths = [0, 1000, 2000, 3000, 4000];
     for (const d of depths) {
       const dy = depthToY(d);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(mLeft, dy);
@@ -370,13 +604,23 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       H - 8
     );
 
-    // Islands labels
+    // Bedrock feature badges & labels
     for (const isl of pair.islands) {
       const ix = lonToX(isl.lon);
-      ctx.fillStyle = '#334155';
-      ctx.font = `600 11px ${font}`;
+      const bathy = this.sampleBathymetry(pair, isl.lon);
+      const isAbove = bathy.elevM > 0;
+      const by = isAbove ? altToY(Math.min(bathy.elevM / 1000, 3.8)) : depthToY(bathy.depthM);
+
       const islName = (t as any)[isl.nameKey] || isl.nameKey;
-      ctx.fillText(islName, ix, seaY + 22);
+      ctx.fillStyle = isAbove ? '#0f172a' : '#cbd5e1';
+      ctx.font = `600 11px ${font}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(islName, ix, isAbove ? by - 8 : by + 16);
+
+      ctx.fillStyle = '#d37400';
+      ctx.beginPath();
+      ctx.arc(ix, by, 3.5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // Prevailing Westerlies label in sky
@@ -389,10 +633,42 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     const peakPt = tempCurvePts[Math.round((pair.gsLon - lonA) / lonSpan * nPts)] || [gsX, altToY(7)];
     this.peakX.set(Math.round(peakPt[0]));
     this.peakY.set(Math.round(peakPt[1]));
+
+    // 10. Interactive Cursor Crosshair & Readout
+    const hover = this.hoverInfo();
+    if (hover) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(211, 116, 0, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+
+      // Vertical guideline
+      ctx.beginPath();
+      ctx.moveTo(hover.x, altToY(11));
+      ctx.lineTo(hover.x, H - 20);
+      ctx.stroke();
+
+      // Horizontal guideline
+      ctx.beginPath();
+      ctx.moveTo(mLeft, hover.y);
+      ctx.lineTo(mLeft + plotW, hover.y);
+      ctx.stroke();
+
+      // Point marker
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#d37400';
+      ctx.beginPath();
+      ctx.arc(hover.x, hover.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   /**
-   * Pre-renders the ocean depth thermal cross-section into a small 2D canvas buffer.
+   * Pre-renders the high-resolution ocean depth thermal cross-section into a 2D canvas buffer.
    */
   private renderOceanBuffer(pair: LatitudePairPin, month: number, mode: 'sst' | 'anomaly') {
     const key = `${pair.id}_${month.toFixed(2)}_${mode}`;
@@ -412,25 +688,19 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     for (let px = 0; px < ow; px++) {
       const lon = lonA + (px / (ow - 1)) * lonSpan;
-      const sst = this.sstData.sampleRealSst(lon, pair.lat, month) ?? this.math.getSst(lon, pair.lat, month);
       const zm = mode === 'anomaly' ? 28.5 * Math.cos(Math.abs(pair.lat) * (Math.PI / 150)) - 2.0 : 0;
 
-      // Gulf stream core deep warm structure
-      const dGs = Math.abs(lon - pair.gsLon);
-      const isGs = dGs < 6.0;
-
       for (let py = 0; py < oh; py++) {
-        const dNorm = py / (oh - 1); // 0 (surface) to 1 (4000m)
+        const dNorm = py / (oh - 1);
         const depthM = dNorm * 4000;
 
-        // Exponential thermal decay with depth (thermocline)
-        const decayZ = isGs ? 550 : 280;
-        const decay = Math.exp(-depthM / decayZ);
-        const abyssalT = 2.2;
-        const localT = abyssalT + (sst - abyssalT) * decay;
-        const val = mode === 'anomaly' ? (localT - zm) * decay : localT;
+        const temp = this.sampleWaterTemp(pair, lon, depthM, month);
+        const val = mode === 'anomaly' ? (temp - zm) * Math.exp(-depthM / 1500) : temp;
 
-        const k = this.math.clamp(Math.round((val - lo) * sc), 0, 255) * 3;
+        let k = ((val - lo) * sc + 0.5) | 0;
+        if (k < 0) k = 0; else if (k > 255) k = 255;
+        k *= 3;
+
         const o = (py * ow + px) * 4;
         d[o] = lut[k];
         d[o + 1] = lut[k + 1];

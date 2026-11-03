@@ -32,7 +32,7 @@
     justify-content: space-between;
     gap: spacing("md");
     padding: 8px 16px;
-    width: min(880px, calc(100vw - 32px));
+    width: min(920px, calc(100vw - 32px));
     @include glass-panel;
 
     @include respond-to("tablet") {
@@ -49,12 +49,53 @@
     }
   }
 
+  &__transect-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid color("line");
+    border-radius: radius("pill");
+    background: color("panel-bg-heavy");
+    color: color("text-bright");
+    cursor: pointer;
+    transition: all transition("fast");
+
+    &:hover {
+      background: color("neutral-200");
+      border-color: color("accent");
+      color: color("accent");
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
   &__pairs {
     display: flex;
     align-items: center;
     gap: 6px;
     overflow-x: auto;
     @include custom-scrollbar;
+  }
+
+  &__pair-lat {
+    font-weight: font-weight("bold");
+    color: color("accent");
+    margin-right: 4px;
+  }
+
+  &__pair-name {
+    font-weight: font-weight("medium");
   }
 
   &__stats {
@@ -171,6 +212,51 @@
       padding: 6px 8px;
     }
   }
+
+  &__hover-tooltip {
+    position: absolute;
+    z-index: 20;
+    transform: translate(-50%, -130%);
+    pointer-events: none;
+    padding: 6px 10px;
+    border-radius: radius("card");
+    @include glass-panel(true);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px color("shadow-panel");
+    transition: opacity transition("fast");
+  }
+
+  &__hover-title {
+    font-size: font-size("xxs");
+    font-weight: font-weight("bold");
+    color: color("text-bright");
+  }
+
+  &__hover-feat {
+    color: color("accent");
+    font-weight: font-weight("semibold");
+  }
+
+  &__hover-metrics {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: font-size("xs");
+  }
+
+  &__hover-tag {
+    color: color("text-dim");
+    font-size: font-size("xxs");
+  }
+
+  &__hover-val {
+    font-family: $font-family-mono;
+    font-weight: font-weight("bold");
+    color: color("accent");
+  }
 }
 
 #cv {
@@ -179,4 +265,5 @@
   display: block;
   width: 100%;
   height: 100%;
+  cursor: crosshair;
 }
