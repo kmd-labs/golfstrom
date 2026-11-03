@@ -8,7 +8,8 @@ import {
   OnDestroy,
   NgZone,
   inject,
-  effect
+  effect,
+  untracked
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
@@ -37,6 +38,7 @@ interface PinDisplay {
   screenY: number;
   visible: boolean;
   opacity: number;
+  lastVisible?: boolean;
 }
 
 @Component({
@@ -103,19 +105,20 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private lastRecolorMonth = -999;
   private lastRecolorMode = '';
   private lastCamPos = new THREE.Vector3();
+  private canvasWidth = 1;
+  private canvasHeight = 1;
+  private pinElements: HTMLElement[] = [];
 
   private readonly pv = new THREE.Vector3();
   private readonly toCam = new THREE.Vector3();
 
   constructor() {
     effect(() => {
-      // Re-render when dataset finishes loading
+      // Re-render SST texture once when dataset finishes loading
       if (this.sstData.isLoaded()) {
-        const m = this.state.month();
-        this.recolorSstTexture(m, this.state.sstMode());
-        if (this.loadedLandFeature) {
-          this.drawLand(this.loadedLandFeature);
-        }
+        untracked(() => {
+          this.recolorSstTexture(this.state.month(), this.state.sstMode());
+        });
       }
     });
 
@@ -146,11 +149,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.animate(0);
 
       this.sstData.loadData().then(() => {
-        const m = this.state.month();
-        this.recolorSstTexture(m, this.state.sstMode());
-        if (this.loadedLandFeature) {
-          this.drawLand(this.loadedLandFeature);
-        }
+        this.recolorSstTexture(this.state.month(), this.state.sstMode());
       });
     });
   }
@@ -177,15 +176,17 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       antialias: true,
       powerPreference: 'high-performance'
     });
+    this.canvasWidth = canvas.clientWidth;
+    this.canvasHeight = canvas.clientHeight;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    this.renderer.setSize(this.canvasWidth, this.canvasHeight, false);
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(this.theme.getTokenColor('globe-bg', '#f5f7fb'));
 
     this.camera = new THREE.PerspectiveCamera(
       40,
-      canvas.clientWidth / (canvas.clientHeight || 1),
+      this.canvasWidth / (this.canvasHeight || 1),
       0.1,
       200
     );
@@ -369,50 +370,85 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       const t = pair.t;
 
       const curAir = this.sstData.getInterpolatedAir(pair);
-      const latRowAir = this.sstData.latRowAir;
-      const lonColAir = this.sstData.lonColAir;
-      const hasAir = curAir && latRowAir.length === this.GH && lonColAir.length === this.GW;
+      const isAnomaly = mode === 'anomaly';
       const tex = this.texData;
 
-      for (let y = 0; y < this.GH; y++) {
-        const rowOff = y * this.GW;
-        const row = hasAir ? latRowAir[y] : null;
-        const zm = mode === 'anomaly' && row ? row.zonalMean : 0;
-        const r0Off = row ? row.r0 * 36 : 0;
-        const r1Off = row ? row.r1 * 36 : 0;
-        const tr = row ? row.tr : 0;
+      const rowR0 = this.sstData.rowR0;
+      const rowR1 = this.sstData.rowR1;
+      const rowTr = this.sstData.rowTr;
+      const rowZm = this.sstData.rowZm;
 
-        for (let x = 0; x < this.GW; x++) {
-          const i = rowOff + x;
+      const colC0 = this.sstData.colC0;
+      const colC1 = this.sstData.colC1;
+      const colTc = this.sstData.colTc;
+
+      const GW = this.GW;
+      const GH = this.GH;
+
+      if (curAir) {
+        for (let y = 0; y < GH; y++) {
+          const rowOff = y * GW;
+          const zm = isAnomaly ? rowZm[y] : 0;
+          const r0Off = rowR0[y] * 36;
+          const r1Off = rowR1[y] * 36;
+          const tr = rowTr[y];
+
+          for (let x = 0; x < GW; x++) {
+            const i = rowOff + x;
+            const va = bin[offsetA + i];
+            const vb = bin[offsetB + i];
+            const o = i * 4;
+
+            if (va !== 255 && vb !== 255) {
+              // Ocean SST
+              const vByte = va + (vb - va) * t;
+              const sst = vByte * 0.2 - 5.0;
+              const val = isAnomaly ? sst - zm : sst;
+
+              let k = ((val - lo) * sc + 0.5) | 0;
+              if (k < 0) k = 0; else if (k > 255) k = 255;
+              k *= 3;
+              tex[o] = lut[k];
+              tex[o + 1] = lut[k + 1];
+              tex[o + 2] = lut[k + 2];
+              tex[o + 3] = 255;
+            } else {
+              // Land Surface Temperature (ERA5 reanalysis) - always enabled
+              const c0 = colC0[x];
+              const c1 = colC1[x];
+              const tc = colTc[x];
+
+              const a0 = curAir[r0Off + c0];
+              const a1 = curAir[r0Off + c1];
+              const b0 = curAir[r1Off + c0];
+              const b1 = curAir[r1Off + c1];
+
+              const top = a0 + (a1 - a0) * tc;
+              const bot = b0 + (b1 - b0) * tc;
+              const airTemp = top + (bot - top) * tr;
+              const val = isAnomaly ? airTemp - zm : airTemp;
+
+              let k = ((val - lo) * sc + 0.5) | 0;
+              if (k < 0) k = 0; else if (k > 255) k = 255;
+              k *= 3;
+              tex[o] = lut[k];
+              tex[o + 1] = lut[k + 1];
+              tex[o + 2] = lut[k + 2];
+              tex[o + 3] = 255;
+            }
+          }
+        }
+      } else {
+        for (let i = 0; i < this.NG; i++) {
           const va = bin[offsetA + i];
           const vb = bin[offsetB + i];
           const o = i * 4;
-
           if (va !== 255 && vb !== 255) {
-            // Ocean SST
             const vByte = va + (vb - va) * t;
             const sst = vByte * 0.2 - 5.0;
-            const val = mode === 'anomaly' ? sst - zm : sst;
-
-            const k = this.clamp255(Math.round((val - lo) * sc)) * 3;
-            tex[o] = lut[k];
-            tex[o + 1] = lut[k + 1];
-            tex[o + 2] = lut[k + 2];
-            tex[o + 3] = 255;
-          } else if (hasAir && curAir) {
-            // Land Surface Temperature (ERA5 reanalysis) - always enabled
-            const col = lonColAir[x];
-            const a0 = curAir[r0Off + col.c0];
-            const a1 = curAir[r0Off + col.c1];
-            const b0 = curAir[r1Off + col.c0];
-            const b1 = curAir[r1Off + col.c1];
-
-            const top = a0 + (a1 - a0) * col.tc;
-            const bot = b0 + (b1 - b0) * col.tc;
-            const airTemp = top + (bot - top) * tr;
-            const val = mode === 'anomaly' ? airTemp - zm : airTemp;
-
-            const k = this.clamp255(Math.round((val - lo) * sc)) * 3;
+            let k = ((sst - lo) * sc + 0.5) | 0;
+            if (k < 0) k = 0; else if (k > 255) k = 255;
+            k *= 3;
             tex[o] = lut[k];
             tex[o + 1] = lut[k + 1];
             tex[o + 2] = lut[k + 2];
@@ -437,7 +473,9 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
             ? this.math.getSst(lon, lat, month)
             : this.math.getAnomaly(lon, lat, month);
 
-          const k = this.clamp255(Math.round((val - lo) * sc)) * 3;
+          let k = ((val - lo) * sc + 0.5) | 0;
+          if (k < 0) k = 0; else if (k > 255) k = 255;
+          k *= 3;
           this.texData[o] = lut[k];
           this.texData[o + 1] = lut[k + 1];
           this.texData[o + 2] = lut[k + 2];
@@ -873,11 +911,10 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   }
 
   private screenOf(pos: THREE.Vector3): [number, number] {
-    const canvas = this.canvasRef.nativeElement;
     this.pv.copy(pos).project(this.camera);
     return [
-      ((this.pv.x + 1) / 2) * canvas.clientWidth,
-      ((1 - this.pv.y) / 2) * canvas.clientHeight
+      ((this.pv.x + 1) * 0.5) * this.canvasWidth,
+      ((1 - this.pv.y) * 0.5) * this.canvasHeight
     ];
   }
 
@@ -922,23 +959,37 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
    * Completely avoids running Angular Change Detection at 60fps.
    */
   private updatePinsDom() {
-    const labels = this.pinLabelRefs?.toArray();
+    if (!this.pinElements.length) {
+      const labels = this.pinLabelRefs?.toArray();
+      if (labels) this.pinElements = labels.map(l => l.nativeElement);
+    }
+    const elements = this.pinElements;
+    const cw = this.canvasWidth;
+    const ch = this.canvasHeight;
+
     for (let i = 0; i < this.pins.length; i++) {
       const p = this.pins[i];
       const facing = this.facingOf(p.worldPos);
       const isVisible = facing > 0.1;
-      const opacity = isVisible ? this.math.clamp((facing - 0.1) / 0.35, 0, 1) : 0;
+      const el = elements[i];
+      if (!el) continue;
 
-      if (labels && labels[i]) {
-        const el = labels[i].nativeElement;
-        if (!isVisible) {
+      if (!isVisible) {
+        if (p.lastVisible !== false) {
           el.style.opacity = '0';
           el.style.pointerEvents = 'none';
-        } else {
-          const [sx, sy] = this.screenOf(p.worldPos);
-          el.style.transform = `translate3d(${Math.round(sx)}px, ${Math.round(sy)}px, 0) translate(-50%, -120%)`;
-          el.style.opacity = `${opacity.toFixed(2)}`;
+          p.lastVisible = false;
+        }
+      } else {
+        const opacity = this.math.clamp((facing - 0.1) / 0.35, 0, 1);
+        this.pv.copy(p.worldPos).project(this.camera);
+        const sx = Math.round(((this.pv.x + 1) * 0.5) * cw);
+        const sy = Math.round(((1 - this.pv.y) * 0.5) * ch);
+        el.style.transform = `translate3d(${sx}px, ${sy}px, 0) translate(-50%, -120%)`;
+        el.style.opacity = opacity.toFixed(2);
+        if (p.lastVisible !== true) {
           el.style.pointerEvents = 'auto';
+          p.lastVisible = true;
         }
       }
     }
@@ -947,7 +998,10 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private animate = (now: number) => {
     this.animId = requestAnimationFrame(this.animate);
 
-    const dt = Math.min((now - this.lastTime) / 1000, 0.1);
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (this.state.viewMode() !== 'globe') return;
+
+    const dt = Math.min((now - this.lastTime) / 1000, 0.05);
     this.lastTime = now;
 
     // Advance seasonal timeline smoothly
@@ -955,10 +1009,12 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     const curMonth = this.state.month();
     const curMode = this.state.sstMode();
+    const dMonth = Math.abs(curMonth - this.lastRecolorMonth);
 
-    // Throttled texture recolor: only updates when month advances meaningfully (~8 updates/sec)
+    // Dynamic texture recolor: updates every ~0.033 month step (~15fps), keeping 95% CPU budget free for smooth 60fps orbit
     if (
-      Math.abs(curMonth - this.lastRecolorMonth) > 0.06 ||
+      dMonth >= 0.033 ||
+      (12 - dMonth) <= 0.033 ||
       curMode !== this.lastRecolorMode
     ) {
       this.recolorSstTexture(curMonth, curMode);
@@ -1072,6 +1128,9 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const canvas = this.canvasRef.nativeElement;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
+    this.canvasWidth = w;
+    this.canvasHeight = h;
+    this.pinElements = [];
     if (this.camera && this.renderer) {
       this.camera.aspect = w / (h || 1);
       this.camera.updateProjectionMatrix();

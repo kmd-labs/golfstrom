@@ -48,6 +48,15 @@ export class SstDataService {
   latRowAir: LatRowAir[] = [];
   lonColAir: LonColAir[] = [];
 
+  readonly rowR0 = new Int16Array(360);
+  readonly rowR1 = new Int16Array(360);
+  readonly rowTr = new Float32Array(360);
+  readonly rowZm = new Float32Array(360);
+
+  readonly colC0 = new Int16Array(720);
+  readonly colC1 = new Int16Array(720);
+  readonly colTc = new Float32Array(720);
+
   private cachedPairKey = '';
   private cachedAirFrame: Float32Array | null = null;
 
@@ -109,6 +118,10 @@ export class SstDataService {
       const r1 = Math.max(0, Math.min(ag.nLat - 1, r0 + 1));
       const tr = fracR - r0;
       this.latRowAir[y] = { r0, r1, tr, zonalMean };
+      this.rowR0[y] = r0;
+      this.rowR1[y] = r1;
+      this.rowTr[y] = tr;
+      this.rowZm[y] = zonalMean;
     }
 
     this.lonColAir = new Array(this.GW);
@@ -119,6 +132,9 @@ export class SstDataService {
       const c1 = (c0 + 1) % ag.nLon;
       const tc = fracC - Math.floor(fracC);
       this.lonColAir[x] = { c0, c1, tc };
+      this.colC0[x] = c0;
+      this.colC1[x] = c1;
+      this.colTc[x] = tc;
     }
   }
 

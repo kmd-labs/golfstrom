@@ -163,10 +163,13 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
   private animate = (now: number) => {
     this.animId = requestAnimationFrame(this.animate);
 
-    const dt = Math.min((now - this.lastTime) / 1000, 0.1);
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (this.state.viewMode() !== 'cross-section') return;
+
+    const dt = Math.min((now - this.lastTime) / 1000, 0.05);
     this.lastTime = now;
 
-    // Advance time smoothly if active
+    // Advance time smoothly when cross-section view is active
     this.state.advanceTime(dt);
 
     this.draw(dt);
