@@ -26,7 +26,6 @@ import { isAtMost, isMobileLandscape } from '@kmd/design-system/utils/breakpoint
 import { I18nService } from '../../core/i18n/i18n.service';
 import { LATITUDE_PAIRS } from '../../core/constants/golfstrom-data';
 import { LatitudePairPin } from '../../core/models/golfstrom.model';
-import { PairModalComponent } from '../pair-modal/pair-modal.component';
 
 interface PinDisplay {
   data: LatitudePairPin;
@@ -1150,32 +1149,6 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
   onPinClick(pair: LatitudePairPin) {
     this.state.selectPair(pair);
-    this.openPairModal(pair);
-  }
-
-  openPairModal(pair: LatitudePairPin) {
-    const t = this.i18n.t();
-    const title = this.getPairTitle(pair);
-
-    this.popup.open({
-      id: `pair-${pair.id}`,
-      title: () => title,
-      component: PairModalComponent,
-      componentInputs: { pair },
-      size: 'md',
-      actions: [
-        {
-          label: () => t.viewCrossSection,
-          variant: 'default',
-          hot: true,
-          onClick: () => {
-            this.state.setViewMode('cross-section');
-            this.popup.close();
-          }
-        },
-        { label: () => t.close, variant: 'default' }
-      ]
-    });
   }
 
   getPairTitle(pair: LatitudePairPin): string {

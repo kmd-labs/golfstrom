@@ -339,6 +339,38 @@
     }
   }
 
+  &__summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: radius("pill");
+    background: rgba(#2563eb, 0.08);
+    border: 1px solid rgba(#2563eb, 0.25);
+    color: #1d4ed8;
+    font-size: font-size("xxs");
+    font-weight: font-weight("semibold");
+    cursor: pointer;
+    transition: all transition("fast");
+    white-space: nowrap;
+    margin: 0 auto;
+
+    &:hover {
+      background: rgba(#2563eb, 0.16);
+      border-color: #2563eb;
+      transform: translateY(-0.5px);
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    @include respond-to("mobile") {
+      display: none;
+    }
+  }
+
   // Level 3: Timeline slider
   &__timeline-row {
     width: 100%;

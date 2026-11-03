@@ -5,6 +5,59 @@
   flex-direction: column;
   gap: spacing("md");
 
+  &__tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    @include custom-scrollbar;
+
+    @include respond-to("mobile") {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: radius("pill");
+    border: 1px solid color("line");
+    background: color("btn-bg");
+    color: color("text-bright");
+    font-size: font-size("xs");
+    cursor: pointer;
+    transition: all transition("fast");
+    white-space: nowrap;
+
+    &:hover {
+      background: color("neutral-200");
+      border-color: color("accent");
+    }
+
+    &--active {
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.08);
+      color: #1d4ed8;
+      font-weight: font-weight("semibold");
+
+      .pair-modal__tab-lat {
+        color: #2563eb;
+      }
+    }
+  }
+
+  &__tab-lat {
+    font-weight: font-weight("bold");
+    color: color("accent");
+  }
+
+  &__tab-names {
+    color: inherit;
+  }
+
   &__grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

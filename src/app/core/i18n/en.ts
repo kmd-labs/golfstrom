@@ -55,6 +55,9 @@ export const EN: Dict = {
   sstAnomaly: 'Thermal Anomaly (°C)',
   sstLegendTitle: 'Sea Surface Temperature',
   anomLegendTitle: 'Zonal Temperature Anomaly',
+  summary: 'Summary',
+  summaryTooltip: 'Transatlantic Climate Comparison Summary',
+  summarySubtitle: 'Same-latitude North America vs Europe thermal contrast',
 
   // Same-latitude comparison pairs
   seasonWinter: 'Winter',

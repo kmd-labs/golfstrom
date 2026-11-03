@@ -75,6 +75,9 @@ export interface Dict {
   sstAnomaly: string;
   sstLegendTitle: string;
   anomLegendTitle: string;
+  summary: string;
+  summaryTooltip: string;
+  summarySubtitle: string;
 
   // Same-latitude comparison pairs
   seasonWinter: string;

@@ -98,6 +98,18 @@
           <app-button
             variant="ghost"
             size="sm"
+            [appTooltip]="t.summaryTooltip"
+            [ariaLabel]="t.summary"
+            (btnClick)="openSummary()">
+            <lucide-icon [img]="summaryIcon" [size]="14"></lucide-icon>
+            @if (!bp.mobile()) {
+              <span>{{ t.summary }}</span>
+            }
+          </app-button>
+
+          <app-button
+            variant="ghost"
+            size="sm"
             [appTooltip]="t.dataSourcesTitle"
             [ariaLabel]="t.dataSourcesTitle"
             (btnClick)="openSources()">
@@ -128,6 +140,16 @@
           <span class="dock__city-name">{{ activeCity1Name() }} ({{ activePair().lat.toFixed(0) }}°N)</span>
           <span class="dock__city-temp">{{ activeCity1TempFormatted() }}</span>
         </div>
+
+        <button
+          type="button"
+          class="dock__summary-pill"
+          [attr.aria-label]="t.summary"
+          [title]="t.summaryTooltip"
+          (click)="openSummary()">
+          <lucide-icon [img]="summaryIcon" [size]="12"></lucide-icon>
+          <span>★ Δ {{ activePairDelta() }}°C ({{ t.seasonWinter }})</span>
+        </button>
 
         <div class="dock__city-card dock__city-card--east">
           <span class="dock__city-region">{{ t.regionEurope }}</span>

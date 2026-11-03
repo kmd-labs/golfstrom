@@ -1,23 +1,39 @@
 @let t = i18n.t();
+@let p = currentPair;
+
 <div class="pair-modal">
+  <!-- Transect Selector Tabs for All 4 Pairs -->
+  <div class="pair-modal__tabs" role="tablist">
+    @for (item of pairs; track item.id) {
+      <button
+        type="button"
+        class="pair-modal__tab"
+        [class.pair-modal__tab--active]="item.id === p.id"
+        (click)="selectPair(item)">
+        <span class="pair-modal__tab-lat">{{ item.lat.toFixed(0) }}°N</span>
+        <span class="pair-modal__tab-names">{{ getCityName(item.cityAKey) }} ↔ {{ getCityName(item.cityBKey) }}</span>
+      </button>
+    }
+  </div>
+
   <div class="pair-modal__grid">
     <!-- West Atlantic City -->
     <div class="pair-modal__card">
-      <h3 class="pair-modal__card-title">{{ getCityName(pair.cityAKey) }}</h3>
+      <h3 class="pair-modal__card-title">{{ getCityName(p.cityAKey) }}</h3>
       <span class="pair-modal__card-coords">
-        {{ pair.lat.toFixed(1) }}°N, {{ Math.abs(pair.lonA).toFixed(1) }}°W ({{ t.regionNorthAmerica }})
+        {{ p.lat.toFixed(1) }}°N, {{ Math.abs(p.lonA).toFixed(1) }}°W ({{ t.regionNorthAmerica }})
       </span>
       <div class="pair-modal__stats">
         <div class="pair-modal__stat">
           <span class="pair-modal__stat-label">{{ t.seasonJanWinter }}</span>
-          <span class="pair-modal__stat-val" [class.pair-modal__stat-val--cold]="pair.janTempA < 5">
-            {{ pair.janTempA > 0 ? '+' : '' }}{{ pair.janTempA }}°C
+          <span class="pair-modal__stat-val" [class.pair-modal__stat-val--cold]="p.janTempA < 5">
+            {{ p.janTempA > 0 ? '+' : '' }}{{ p.janTempA }}°C
           </span>
         </div>
         <div class="pair-modal__stat">
           <span class="pair-modal__stat-label">{{ t.seasonJulSummer }}</span>
           <span class="pair-modal__stat-val">
-            +{{ pair.julTempA }}°C
+            +{{ p.julTempA }}°C
           </span>
         </div>
       </div>
@@ -25,21 +41,21 @@
 
     <!-- East Atlantic City -->
     <div class="pair-modal__card pair-modal__card--east">
-      <h3 class="pair-modal__card-title">{{ getCityName(pair.cityBKey) }}</h3>
+      <h3 class="pair-modal__card-title">{{ getCityName(p.cityBKey) }}</h3>
       <span class="pair-modal__card-coords">
-        {{ pair.lat.toFixed(1) }}°N, {{ Math.abs(pair.lonB).toFixed(1) }}°{{ pair.lonB < 0 ? 'W' : 'E' }} ({{ t.regionEurope }})
+        {{ p.lat.toFixed(1) }}°N, {{ Math.abs(p.lonB).toFixed(1) }}°{{ p.lonB < 0 ? 'W' : 'E' }} ({{ t.regionEurope }})
       </span>
       <div class="pair-modal__stats">
         <div class="pair-modal__stat">
           <span class="pair-modal__stat-label">{{ t.seasonJanWinter }}</span>
           <span class="pair-modal__stat-val pair-modal__stat-val--warm">
-            {{ pair.janTempB > 0 ? '+' : '' }}{{ pair.janTempB }}°C
+            {{ p.janTempB > 0 ? '+' : '' }}{{ p.janTempB }}°C
           </span>
         </div>
         <div class="pair-modal__stat">
           <span class="pair-modal__stat-label">{{ t.seasonJulSummer }}</span>
           <span class="pair-modal__stat-val">
-            +{{ pair.julTempB }}°C
+            +{{ p.julTempB }}°C
           </span>
         </div>
       </div>
@@ -47,7 +63,7 @@
   </div>
 
   <div class="pair-modal__delta">
-    <span>★ {{ t.winterDifference }}: {{ t.warmerInEurope(Math.abs(pair.janTempB - pair.janTempA)) }}</span>
+    <span>★ {{ t.winterDifference }}: {{ t.warmerInEurope(Math.abs(p.janTempB - p.janTempA)) }}</span>
   </div>
 
   <p class="pair-modal__desc">

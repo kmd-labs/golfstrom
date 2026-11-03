@@ -2,6 +2,8 @@ import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LatitudePairPin } from '../../core/models/golfstrom.model';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { GolfstromStateService } from '../../core/services/golfstrom-state.service';
+import { LATITUDE_PAIRS } from '../../core/constants/golfstrom-data';
 
 @Component({
   selector: 'app-pair-modal',
@@ -11,10 +13,21 @@ import { I18nService } from '../../core/i18n/i18n.service';
   styleUrl: './pair-modal.component.scss'
 })
 export class PairModalComponent {
-  @Input() pair!: LatitudePairPin;
-
+  private readonly state = inject(GolfstromStateService);
   readonly i18n = inject(I18nService);
   readonly Math = Math;
+  readonly pairs = LATITUDE_PAIRS;
+
+  @Input() pair?: LatitudePairPin;
+
+  get currentPair(): LatitudePairPin {
+    return this.pair ?? this.state.selectedPair();
+  }
+
+  selectPair(p: LatitudePairPin) {
+    this.pair = p;
+    this.state.selectPair(p);
+  }
 
   getCityName(key: string): string {
     const t = this.i18n.t();
@@ -22,8 +35,9 @@ export class PairModalComponent {
   }
 
   getPairDescription(): string {
-    if (!this.pair) return '';
+    const p = this.currentPair;
+    if (!p) return '';
     const t = this.i18n.t();
-    return (t as any)[this.pair.descKey] || '';
+    return (t as any)[p.descKey] || '';
   }
 }

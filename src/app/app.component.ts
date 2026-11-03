@@ -9,7 +9,8 @@ import {
   Pause,
   Thermometer,
   Gauge,
-  Database
+  Database,
+  FileText
 } from 'lucide-angular';
 import {
   ButtonComponent,
@@ -32,6 +33,7 @@ import { GlobeComponent } from './components/globe/globe.component';
 import { CrossSectionViewComponent } from './components/cross-section-view/cross-section-view.component';
 import { GlossaryComponent } from './components/glossary/glossary.component';
 import { SourcesPopupComponent } from './components/sources-popup/sources-popup.component';
+import { PairModalComponent } from './components/pair-modal/pair-modal.component';
 import { ViewMode } from './core/models/golfstrom.model';
 import { LATITUDE_PAIRS, PLAYBACK_SPEEDS } from './core/constants/golfstrom-data';
 import { SstDataService } from './core/services/sst-data.service';
@@ -72,6 +74,7 @@ export class AppComponent implements OnInit {
   readonly thermoIcon = Thermometer;
   readonly speedIcon = Gauge;
   readonly databaseIcon = Database;
+  readonly summaryIcon = FileText;
 
   readonly isPopupOpen = computed(() => this.popup.config() !== null);
 
@@ -114,6 +117,10 @@ export class AppComponent implements OnInit {
   });
 
   readonly activePair = computed(() => this.state.selectedPair());
+  readonly activePairDelta = computed(() => {
+    const p = this.state.selectedPair();
+    return Math.abs(p.janTempB - p.janTempA);
+  });
 
   readonly activeCity1Name = computed(() => {
     const p = this.state.selectedPair();
@@ -222,6 +229,36 @@ export class AppComponent implements OnInit {
       component: GlossaryComponent,
       size: 'lg',
       actions: [
+        {
+          label: computed(() => this.i18n.t().close),
+          variant: 'default'
+        }
+      ]
+    });
+  }
+
+  openSummary() {
+    this.popup.open({
+      id: 'summary',
+      title: computed(() => {
+        const t = this.i18n.t() as any;
+        const p = this.state.selectedPair();
+        const cityA = t[p.cityAKey] || p.cityAKey;
+        const cityB = t[p.cityBKey] || p.cityBKey;
+        return `${p.lat.toFixed(0)}°N: ${cityA} ↔ ${cityB}`;
+      }),
+      subtitle: computed(() => this.i18n.t().summarySubtitle),
+      component: PairModalComponent,
+      size: 'md',
+      actions: [
+        {
+          label: computed(() => this.i18n.t().viewCrossSection),
+          variant: 'default',
+          hot: true,
+          onClick: () => {
+            this.state.setViewMode('cross-section');
+          }
+        },
         {
           label: computed(() => this.i18n.t().close),
           variant: 'default'
