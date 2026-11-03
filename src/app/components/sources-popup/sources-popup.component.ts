@@ -1,12 +1,10 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, ExternalLink, ArrowRight } from 'lucide-angular';
+import { LucideAngularModule, ExternalLink } from 'lucide-angular';
 import { I18nService } from '../../core/i18n/i18n.service';
-import { AboutService, PopupService } from '@kmd/design-system';
 
 /**
- * Modal popup displaying scientific data sources, licenses, methodology,
- * and KMD Labs project attribution, formatted similarly to el-nino.
+ * Modal popup displaying scientific data sources, licenses, and methodology.
  */
 @Component({
   selector: 'app-sources-popup',
@@ -17,14 +15,5 @@ import { AboutService, PopupService } from '@kmd/design-system';
 })
 export class SourcesPopupComponent {
   readonly i18n = inject(I18nService);
-  private readonly popup = inject(PopupService);
-  private readonly about = inject(AboutService);
-
   readonly externalLinkIcon = ExternalLink;
-  readonly arrowIcon = ArrowRight;
-
-  openAbout() {
-    this.popup.close();
-    this.about.open({ lang: this.i18n.lang() });
-  }
 }

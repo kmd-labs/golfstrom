@@ -16,7 +16,7 @@ export const EN: Dict = {
   // Top HUD & Navigation
   changeLanguage: 'Language',
   chooseView: 'View',
-  viewPrimary: "Europe's Heat Pump (3D Globe)",
+  viewPrimary: '3D Globe',
   viewSecondary: 'Thermal Cross-Section (City Pairs)',
   stageAriaLabel: 'Golfstrom Visualization',
   aboutUs: 'About us',
@@ -76,11 +76,20 @@ export const EN: Dict = {
   scaleAnomShort: 'Thermal Anomaly',
   layersPinsTitle: 'Latitude Comparison Pins',
   layersPinsSubtitle: 'Same-latitude transatlantic paired locations',
+  legendActivePin: 'Active comparison pair',
+  legendInactivePin: 'Other latitude pairs',
   activePinLabel: 'Active Pair',
   anomalyScaleTitle: 'Thermal Anomaly Scale',
   anomalyScaleDesc: 'Deviation from zonal latitude mean',
   sstScaleTitle: 'Sea Surface Temperature',
   sstScaleDesc: 'Absolute ocean surface temperature',
+
+  // Countries (for concise mobile display)
+  countryUSA: 'USA',
+  countryCanada: 'Canada',
+  countryPortugal: 'Portugal',
+  countryFrance: 'France',
+  countryNorway: 'Norway',
 
   // Same-latitude comparison pairs
   seasonWinter: 'Winter',

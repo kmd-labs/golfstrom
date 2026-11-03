@@ -6,9 +6,18 @@
   max-height: min(90vh, 820px);
 }
 
+.popup-backdrop {
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
 @include respond-to("mobile") {
   .popup-backdrop {
     padding-top: 56px !important;
+  }
+
+  .header__brand:not(.header__brand--expanded) {
+    max-width: 56px !important;
   }
 }
 

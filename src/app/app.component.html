@@ -2,7 +2,7 @@
 
 <app-splash></app-splash>
 
-<main class="viewport">
+<main class="viewport" [class.has-popup-open]="isPopupOpen()">
   <!-- Top HUD: Left Logotype + Language, Right View Switcher -->
   <header class="header" [class.header--popup-open]="isPopupOpen()">
     <div class="header__left">
@@ -87,62 +87,39 @@
               <!-- Section A: Ocean Temperature Scale (Derived from Design System tokens) -->
               <div class="dock__layers-section">
                 <div class="dock__layers-header">
-                  <span class="dock__layers-title">{{ state.sstMode() === 'anomaly' ? t.anomalyScaleTitle : t.sstScaleTitle }}</span>
-                  <span class="dock__layers-badge">{{ state.sstMode() === 'anomaly' ? t.scaleAnomShort : t.scaleSstShort }}</span>
+                  <span class="dock__layers-title">{{ t.sstScaleTitle }}</span>
+                  <span class="dock__layers-badge">{{ t.scaleSstShort }}</span>
                 </div>
-                <p class="dock__layers-desc">{{ state.sstMode() === 'anomaly' ? t.anomalyScaleDesc : t.sstScaleDesc }}</p>
+                <p class="dock__layers-desc">{{ t.sstScaleDesc }}</p>
 
                 <div class="dock__dropdown-scale">
-                  <div
-                    class="dock__dropdown-bar"
-                    [class.dock__dropdown-bar--anomaly]="state.sstMode() === 'anomaly'"></div>
+                  <div class="dock__dropdown-bar"></div>
 
                   <div class="dock__dropdown-ticks">
-                    @if (state.sstMode() === 'anomaly') {
-                      <span>{{ anomTickM3() }}</span>
-                      <span>{{ anomTickM15() }}</span>
-                      <span>{{ anomTick0() }}</span>
-                      <span>{{ anomTickP15() }}</span>
-                      <span>{{ anomTickP3() }}</span>
-                    } @else {
-                      <span>{{ sstTickMin() }}</span>
-                      <span>{{ sstTickMid() }}</span>
-                      <span>{{ sstTickMax() }}</span>
-                    }
+                    <span>{{ sstTickMin() }}</span>
+                    <span>{{ sstTickMid() }}</span>
+                    <span>{{ sstTickMax() }}</span>
                   </div>
                 </div>
               </div>
 
               <div class="dock__layers-divider" aria-hidden="true"></div>
 
-              <!-- Section B: Latitude Comparison Pins & Active Pin Info -->
+              <!-- Section B: Comparison Pins Legend -->
               <div class="dock__layers-section">
                 <div class="dock__layers-header">
                   <span class="dock__layers-title">{{ t.layersPinsTitle }}</span>
-                  <span class="dock__layers-badge">{{ activePair().lat.toFixed(1) }}°N</span>
                 </div>
-                <p class="dock__layers-desc">{{ t.layersPinsSubtitle }}</p>
 
-                <!-- Active Pin Card -->
-                <div class="dock__layers-active-card">
-                  <span class="dock__layers-pin-dot" aria-hidden="true"></span>
-                  <div class="dock__layers-pin-meta">
-                    <span class="dock__layers-pin-name">{{ activePairName() }}</span>
-                    <span class="dock__layers-pin-contrast">{{ activePairContrast() }}</span>
+                <div class="dock__layers-legend">
+                  <div class="dock__layers-legend-item">
+                    <span class="dock__layers-legend-dot dock__layers-legend-dot--blue" aria-hidden="true"></span>
+                    <span class="dock__layers-legend-text">{{ t.legendActivePin }}</span>
                   </div>
-                </div>
-
-                <!-- Quick Pin Selector Pills -->
-                <div class="dock__layers-pins-grid" role="group" [attr.aria-label]="t.layersPinsTitle">
-                  @for (pair of latitudePairs; track pair.id) {
-                    <button
-                      type="button"
-                      class="dock__layers-pin-pill"
-                      [class.dock__layers-pin-pill--active]="state.selectedPair().id === pair.id"
-                      (click)="state.selectPair(pair)">
-                      {{ pair.lat.toFixed(0) }}°N
-                    </button>
-                  }
+                  <div class="dock__layers-legend-item">
+                    <span class="dock__layers-legend-dot dock__layers-legend-dot--orange" aria-hidden="true"></span>
+                    <span class="dock__layers-legend-text">{{ t.legendInactivePin }}</span>
+                  </div>
                 </div>
               </div>
             </div>

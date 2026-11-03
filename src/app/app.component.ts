@@ -135,12 +135,18 @@ export class AppComponent implements OnInit {
   readonly activeCity1Name = computed(() => {
     const p = this.state.selectedPair();
     const t = this.i18n.t() as any;
+    if (this.bp.mobile() && p.countryAKey) {
+      return t[p.countryAKey] || t[p.cityAKey] || p.cityAKey;
+    }
     return t[p.cityAKey] || p.cityAKey;
   });
 
   readonly activeCity2Name = computed(() => {
     const p = this.state.selectedPair();
     const t = this.i18n.t() as any;
+    if (this.bp.mobile() && p.countryBKey) {
+      return t[p.countryBKey] || t[p.cityBKey] || p.cityBKey;
+    }
     return t[p.cityBKey] || p.cityBKey;
   });
 

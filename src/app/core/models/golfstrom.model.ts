@@ -22,11 +22,13 @@ export interface LatitudePairPin {
   // West Atlantic location
   lonA: number;
   cityAKey: string;
+  countryAKey?: string;
   janTempA: number;
   julTempA: number;
   // East Atlantic location
   lonB: number;
   cityBKey: string;
+  countryBKey?: string;
   janTempB: number;
   julTempB: number;
   // Gulf Stream peak longitude & baseline temps

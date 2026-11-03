@@ -19,6 +19,7 @@ import * as topojson from 'topojson-client';
 import { GolfstromStateService } from '../../core/services/golfstrom-state.service';
 import { GolfstromMathService } from '../../core/services/golfstrom-math.service';
 import { SstDataService } from '../../core/services/sst-data.service';
+import { BreakpointService } from '@kmd/design-system';
 import { ThemeService } from '@kmd/design-system/services/theme.service';
 import { PopupService } from '@kmd/design-system/ui/popup/popup.service';
 import { TooltipService } from '@kmd/design-system/ui/tooltip/tooltip.service';
@@ -29,15 +30,15 @@ import { LatitudePairPin } from '../../core/models/golfstrom.model';
 
 interface PinDisplay {
   data: LatitudePairPin;
-  spriteA: THREE.Sprite;
-  spriteB: THREE.Sprite;
+  spriteA?: THREE.Sprite;
+  spriteB?: THREE.Sprite;
   posA: THREE.Vector3;
   posB: THREE.Vector3;
   worldPos: THREE.Vector3;
   screenX: number;
   screenY: number;
-  visible: boolean;
-  opacity: number;
+  visible?: boolean;
+  opacity?: number;
   lastVisible?: boolean;
 }
 
@@ -59,6 +60,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   readonly popup = inject(PopupService);
   readonly tooltip = inject(TooltipService);
   readonly i18n = inject(I18nService);
+  readonly bp = inject(BreakpointService);
   private readonly ngZone = inject(NgZone);
 
   readonly Math = Math;
@@ -83,9 +85,31 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private relief: { data: Uint8Array; w: number; h: number; base: number } | null = null;
   private reliefCanvas: HTMLCanvasElement | null = null;
 
-  // Latitude comparison pins
-  pins: PinDisplay[] = [];
+  // Latitude comparison pins - pre-populated on declaration to prevent ExpressionChangedAfterItHasBeenCheckedError
+  pins: PinDisplay[] = LATITUDE_PAIRS.map(data => {
+    const posA = this.math.pos(data.lonA, data.lat, this.math.R * 1.025, new THREE.Vector3());
+    const posB = this.math.pos(data.lonB, data.lat, this.math.R * 1.025, new THREE.Vector3());
+    const midLon = (data.lonA + data.lonB) / 2;
+    const midPos = this.math.pos(midLon, data.lat, this.math.R * 1.03, new THREE.Vector3());
+    return {
+      data,
+      posA,
+      posB,
+      worldPos: midPos,
+      screenX: -9999,
+      screenY: -9999,
+      visible: false,
+      opacity: 0
+    };
+  });
   private pinGroup = new THREE.Group();
+
+  // Entrance camera animation: graceful sweep & slight zoom into the North Atlantic
+  private introAnimStart = 0;
+  private readonly introAnimDuration = 1800;
+  private isIntroAnimating = false;
+  private readonly introStartPos = new THREE.Vector3();
+  private readonly introTargetPos = new THREE.Vector3();
 
   // Inspect Point Marker & Raycasting
   private inspectPin?: THREE.Sprite;
@@ -120,20 +144,22 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       // Dynamically highlight active city pair in blue
       const activeId = this.state.selectedPair().id;
       if (!this.pinTexActive || !this.pinTexDefault) return;
+      const isMobile = this.bp.mobile();
       for (const p of this.pins) {
         const isActive = p.data.id === activeId;
         const tex = isActive ? this.pinTexActive : this.pinTexDefault;
-        const scale = isActive ? 0.95 : 0.65;
-        if (p.spriteA.material.map !== tex) {
+        const baseScale = isMobile ? 1.4 : 0.8;
+        const scale = isActive ? baseScale * 1.3 : baseScale;
+        if (p.spriteA && p.spriteA.material.map !== tex) {
           p.spriteA.material.map = tex;
           p.spriteA.material.needsUpdate = true;
         }
-        if (p.spriteB.material.map !== tex) {
+        if (p.spriteB && p.spriteB.material.map !== tex) {
           p.spriteB.material.map = tex;
           p.spriteB.material.needsUpdate = true;
         }
-        p.spriteA.scale.set(scale, scale, 1);
-        p.spriteB.scale.set(scale, scale, 1);
+        p.spriteA?.scale.set(scale, scale, 1);
+        p.spriteB?.scale.set(scale, scale, 1);
       }
     });
 
@@ -170,6 +196,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.initPins();
       this.initInspectPin();
       window.addEventListener('resize', this.onResize);
+      this.updatePinsDom();
       this.animate(0);
 
       this.sstData.loadData().then(() => {
@@ -220,8 +247,14 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const initialDist = portrait ? 60 : isLand ? 44 : 52;
     this.lastLayoutMode = isLand ? 'landscape' : portrait ? 'portrait' : 'desktop';
 
-    // Initial camera position centered on North Atlantic (lon -40°, lat 38°) - zoomed out so globe starts twice as small
-    this.math.pos(-40, 38, initialDist, this.camera.position);
+    // Target position: centered on North Atlantic (lon -40°, lat 38°)
+    this.math.pos(-40, 38, initialDist, this.introTargetPos);
+    // Start position: slightly more west (lon -65°, lat 30°) and slightly zoomed out (1.22x distance)
+    this.math.pos(-65, 30, initialDist * 1.22, this.introStartPos);
+
+    this.camera.position.copy(this.introStartPos);
+    this.isIntroAnimating = true;
+    this.introAnimStart = performance.now();
 
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
@@ -798,44 +831,31 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     this.pinTexActive = new THREE.CanvasTexture(pinCanvasA);
 
     const activeId = this.state.selectedPair().id;
+    const isMobile = this.bp.mobile();
 
-    this.pins = LATITUDE_PAIRS.map(data => {
+    for (const p of this.pins) {
+      const data = p.data;
       const isActive = data.id === activeId;
       const tex = isActive ? this.pinTexActive! : this.pinTexDefault!;
-      const scale = isActive ? 0.95 : 0.65;
+      const baseScale = isMobile ? 1.4 : 0.8;
+      const scale = isActive ? baseScale * 1.3 : baseScale;
 
-      const posA = this.math.pos(data.lonA, data.lat, this.math.R * 1.025, new THREE.Vector3());
       const spA = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })
       );
       spA.scale.set(scale, scale, 1);
-      spA.position.copy(posA);
+      spA.position.copy(p.posA);
       this.pinGroup.add(spA);
+      p.spriteA = spA;
 
-      const posB = this.math.pos(data.lonB, data.lat, this.math.R * 1.025, new THREE.Vector3());
       const spB = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })
       );
       spB.scale.set(scale, scale, 1);
-      spB.position.copy(posB);
+      spB.position.copy(p.posB);
       this.pinGroup.add(spB);
-
-      const midLon = (data.lonA + data.lonB) / 2;
-      const midPos = this.math.pos(midLon, data.lat, this.math.R * 1.03, new THREE.Vector3());
-
-      return {
-        data,
-        spriteA: spA,
-        spriteB: spB,
-        posA,
-        posB,
-        worldPos: midPos,
-        screenX: 0,
-        screenY: 0,
-        visible: true,
-        opacity: 1
-      };
-    });
+      p.spriteB = spB;
+    }
   }
 
   private initInspectPin() {
@@ -939,7 +959,8 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const waterTemp = !isLand ? this.sstData.sampleRealSst(pt.lon, pt.lat, month) : null;
     const airTemp = this.sstData.sampleRealAir(pt.lon, pt.lat, month);
 
-    const coordsStr = t.inspectCoords(pt.lat, pt.lon);
+    const isMobile = this.bp.mobile();
+    const coordsStr = isMobile ? '' : t.inspectCoords(pt.lat, pt.lon);
     const waterStr = waterTemp !== null ? this.i18n.formatTemp(waterTemp, 'temp', true) : t.inspectNoWater;
     const airStr = airTemp !== null ? this.i18n.formatTemp(airTemp, 'temp', true) : '–';
 
@@ -974,7 +995,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const html = `
       <div class="globe-tooltip-col">
         <div class="globe-tooltip-col__header">
-          <span class="globe-tooltip-col__coords">${coordsStr}</span>
+          ${coordsStr ? `<span class="globe-tooltip-col__coords">${coordsStr}</span>` : ''}
           <span class="globe-tooltip-col__badge">${isLand ? t.inspectLand : t.inspectOcean}</span>
         </div>
         <div class="globe-tooltip-col__divider"></div>
@@ -993,8 +1014,8 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     `.trim();
 
     const textFallback = isLand
-      ? `${t.inspectAir}: ${airStr} · ${coordsStr}`
-      : `${t.inspectWater}: ${waterStr} · ${t.inspectAir}: ${airStr} · ${coordsStr}`;
+      ? `${t.inspectAir}: ${airStr}${coordsStr ? ` · ${coordsStr}` : ''}`
+      : `${t.inspectWater}: ${waterStr} · ${t.inspectAir}: ${airStr}${coordsStr ? ` · ${coordsStr}` : ''}`;
 
     this.ngZone.run(() => {
       this.tooltip.show(textFallback, sx, sy, 'top', 0, {
@@ -1123,13 +1144,26 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.recolorSstTexture(curMonth, curMode);
     }
 
-    this.controls.update();
-
-    // Fast check: only recalculate pin screen positions when camera actually moves
-    const camMoved = this.camera.position.distanceToSquared(this.lastCamPos) > 1e-5;
-    if (camMoved) {
+    if (this.isIntroAnimating) {
+      const elapsed = now - this.introAnimStart;
+      const progress = Math.min(1, Math.max(0, elapsed / this.introAnimDuration));
+      const ease = 1 - Math.pow(1 - progress, 3);
+      this.camera.position.lerpVectors(this.introStartPos, this.introTargetPos, ease);
+      this.controls.update();
       this.updatePinsDom();
-      this.lastCamPos.copy(this.camera.position);
+      if (progress >= 1) {
+        this.isIntroAnimating = false;
+        this.lastCamPos.copy(this.camera.position);
+      }
+    } else {
+      this.controls.update();
+
+      // Fast check: only recalculate pin screen positions when camera actually moves
+      const camMoved = this.camera.position.distanceToSquared(this.lastCamPos) > 1e-5;
+      if (camMoved) {
+        this.updatePinsDom();
+        this.lastCamPos.copy(this.camera.position);
+      }
     }
 
     if (this.inspectedPoint) {
@@ -1140,6 +1174,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   };
 
   onPointerDown(e: PointerEvent) {
+    this.isIntroAnimating = false;
     this.downXY = [e.clientX, e.clientY];
   }
 
@@ -1149,7 +1184,8 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     this.downXY = null;
     if (moved > 6) return;
 
-    const hit = this.pickPin(e.clientX, e.clientY, 32);
+    const hitRadius = this.bp.mobile() ? 44 : 32;
+    const hit = this.pickPin(e.clientX, e.clientY, hitRadius);
     if (hit) {
       this.clearInspectedPoint();
       this.ngZone.run(() => this.onPinClick(hit));
@@ -1184,7 +1220,8 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
   onPointerMove(e: PointerEvent) {
     if (e.buttons) return;
-    const hit = this.pickPin(e.clientX, e.clientY, 24);
+    const hoverRadius = this.bp.mobile() ? 36 : 24;
+    const hit = this.pickPin(e.clientX, e.clientY, hoverRadius);
     if (hit !== this.hoverPin) {
       this.hoverPin = hit;
       this.canvasRef.nativeElement.style.cursor = (hit || this.inspectedPoint) ? 'pointer' : '';
@@ -1196,8 +1233,13 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   }
 
   getPairTitle(pair: LatitudePairPin): string {
-    const t = this.i18n.t();
-    return (t as any)[pair.titleKey] || pair.id;
+    const t = this.i18n.t() as any;
+    if (this.bp.mobile() && pair.countryAKey && pair.countryBKey) {
+      const cA = t[pair.countryAKey] || t[pair.cityAKey] || pair.id;
+      const cB = t[pair.countryBKey] || t[pair.cityBKey] || pair.id;
+      return `${cA} ↔ ${cB}`;
+    }
+    return t[pair.titleKey] || pair.id;
   }
 
   handleResize() {

@@ -16,7 +16,7 @@ export const PL: Dict = {
   // Top HUD & Navigation
   changeLanguage: 'Język',
   chooseView: 'Widok',
-  viewPrimary: 'Pompa ciepła Europy (Globus 3D)',
+  viewPrimary: 'Globus 3D',
   viewSecondary: 'Przekrój termiczny (Pary miast)',
   stageAriaLabel: 'Wizualizacja Golfstrom',
   aboutUs: 'O nas',
@@ -76,11 +76,20 @@ export const PL: Dict = {
   scaleAnomShort: 'Anomalia termiczna',
   layersPinsTitle: 'Pary porównawcze szerokości',
   layersPinsSubtitle: 'Transatlantyckie pary miast na tej samej szerokości',
+  legendActivePin: 'Aktywna para porównawcza',
+  legendInactivePin: 'Pozostałe pary szerokości',
   activePinLabel: 'Aktywna para',
   anomalyScaleTitle: 'Skala anomalii termicznej',
   anomalyScaleDesc: 'Odchylenie od średniej dla danej szerokości',
   sstScaleTitle: 'Temperatura powierzchni morza',
   sstScaleDesc: 'Bezwzględna temperatura powierzchni wody',
+
+  // Kraje (do zwięzłego widoku mobilnego)
+  countryUSA: 'USA',
+  countryCanada: 'Kanada',
+  countryPortugal: 'Portugalia',
+  countryFrance: 'Francja',
+  countryNorway: 'Norwegia',
 
   // Same-latitude comparison pairs
   seasonWinter: 'Zima',

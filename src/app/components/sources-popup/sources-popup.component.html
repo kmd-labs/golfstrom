@@ -55,21 +55,4 @@
       }
     </div>
   </section>
-
-  <!-- Built by KMD Labs (Attribution) -->
-  <section class="sources-popup__built" aria-labelledby="sources-built-title">
-    <h3 class="sources-popup__title" id="sources-built-title">{{ t.built.title }}</h3>
-    <dl class="sources-popup__built-list">
-      @for (row of t.built.rows; track row.label) {
-        <div class="sources-popup__built-row">
-          <dt>{{ row.label }}</dt>
-          <dd>{{ row.text }}</dd>
-        </div>
-      }
-    </dl>
-    <button type="button" class="sources-popup__team" (click)="openAbout()">
-      {{ t.built.teamLink }}
-      <lucide-icon [img]="arrowIcon" [size]="12"></lucide-icon>
-    </button>
-  </section>
 </div>

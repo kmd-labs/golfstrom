@@ -97,11 +97,20 @@ export interface Dict {
   scaleAnomShort: string;
   layersPinsTitle: string;
   layersPinsSubtitle: string;
+  legendActivePin: string;
+  legendInactivePin: string;
   activePinLabel: string;
   anomalyScaleTitle: string;
   anomalyScaleDesc: string;
   sstScaleTitle: string;
   sstScaleDesc: string;
+
+  // Countries (for concise mobile display)
+  countryUSA: string;
+  countryCanada: string;
+  countryPortugal: string;
+  countryFrance: string;
+  countryNorway: string;
 
   // Same-latitude comparison pairs
   seasonWinter: string;
