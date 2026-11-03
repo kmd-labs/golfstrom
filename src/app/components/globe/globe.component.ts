@@ -212,22 +212,22 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       40,
       this.canvasWidth / (this.canvasHeight || 1),
       0.1,
-      200
+      400
     );
 
     const isLand = isMobileLandscape();
     const portrait = !isLand && (this.canvasWidth / (this.canvasHeight || 1) < 0.95 || isAtMost('mobile'));
-    const initialDist = portrait ? 32 : isLand ? 23 : 27;
+    const initialDist = portrait ? 60 : isLand ? 44 : 52;
     this.lastLayoutMode = isLand ? 'landscape' : portrait ? 'portrait' : 'desktop';
 
-    // Initial camera position centered on North Atlantic (lon -40°, lat 38°) - zoomed out for full basin context
+    // Initial camera position centered on North Atlantic (lon -40°, lat 38°) - zoomed out so globe starts twice as small
     this.math.pos(-40, 38, initialDist, this.camera.position);
 
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
-    this.controls.minDistance = 11.0;
-    this.controls.maxDistance = 50.0;
+    this.controls.minDistance = 14.0;
+    this.controls.maxDistance = 100.0;
     this.controls.enablePan = false;
     this.controls.target.set(0, 0, 0);
     this.controls.update();
@@ -1171,7 +1171,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     if (this.camera && this.renderer) {
       if (this.lastLayoutMode && this.lastLayoutMode !== layoutMode) {
-        const targetDist = portrait ? 32 : isLand ? 23 : 27;
+        const targetDist = portrait ? 60 : isLand ? 44 : 52;
         this.camera.position.setLength(targetDist);
       }
       this.lastLayoutMode = layoutMode;
