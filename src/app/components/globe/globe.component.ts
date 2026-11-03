@@ -419,12 +419,18 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
    */
   private recolorSstTexture(month: number, mode: 'sst' | 'anomaly') {
     if (!this.texData) return;
+    const bin = this.sstData.sstBin;
+
+    // While real dataset is loading, don't re-evaluate analytical fallback on every frame
+    if (!bin && this.lastRecolorMonth !== -999 && this.lastRecolorMode === mode) {
+      return;
+    }
+
     this.lastRecolorMonth = month;
     this.lastRecolorMode = mode;
 
     const { lut, lo, hi } = mode === 'sst' ? this.math.lutSst : this.math.lutAnom;
     const sc = 255 / (hi - lo);
-    const bin = this.sstData.sstBin;
     const pair = this.sstData.getKeyframePair(month);
 
     if (bin && pair) {
@@ -639,6 +645,15 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   }
 
   isLand(lon: number, lat: number): boolean {
+    if (this.landMask) {
+      const c = Math.floor(((((lon + 180) % 360) + 360) % 360));
+      const r = this.math.clamp(Math.floor(90 - lat), 0, 179);
+      return this.landMask[r * 360 + c] === 1;
+    }
+    return false;
+  }
+
+  isLandPrecise(lon: number, lat: number): boolean {
     if (this.loadedLandFeature) {
       try {
         return d3Geo.geoContains(this.loadedLandFeature, [lon, lat]);
@@ -646,10 +661,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
         // fallback
       }
     }
-    if (!this.landMask) return false;
-    const c = Math.floor(((((lon + 180) % 360) + 360) % 360));
-    const r = this.math.clamp(Math.floor(90 - lat), 0, 179);
-    return this.landMask[r * 360 + c] === 1;
+    return this.isLand(lon, lat);
   }
 
   private async loadRelief() {
@@ -954,7 +966,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     this.lastTooltipMonth = month;
 
     const t = this.i18n.t();
-    const isLand = this.isLand(pt.lon, pt.lat);
+    const isLand = this.isLandPrecise(pt.lon, pt.lat);
 
     const waterTemp = !isLand ? this.sstData.sampleRealSst(pt.lon, pt.lat, month) : null;
     const airTemp = this.sstData.sampleRealAir(pt.lon, pt.lat, month);
