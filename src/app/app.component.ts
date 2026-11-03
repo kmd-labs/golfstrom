@@ -11,7 +11,8 @@ import {
   Gauge,
   Database,
   FileText,
-  Layers
+  Layers,
+  Settings
 } from 'lucide-angular';
 import {
   ButtonComponent,
@@ -36,6 +37,7 @@ import { CrossSectionViewComponent } from './components/cross-section-view/cross
 import { GlossaryComponent } from './components/glossary/glossary.component';
 import { SourcesPopupComponent } from './components/sources-popup/sources-popup.component';
 import { PairModalComponent } from './components/pair-modal/pair-modal.component';
+import { SettingsPopupComponent } from './components/settings-popup/settings-popup.component';
 import { ViewMode } from './core/models/golfstrom.model';
 import { LATITUDE_PAIRS, PLAYBACK_SPEEDS } from './core/constants/golfstrom-data';
 import { SstDataService } from './core/services/sst-data.service';
@@ -79,6 +81,10 @@ export class AppComponent implements OnInit {
   readonly databaseIcon = Database;
   readonly summaryIcon = FileText;
   readonly layersIcon = Layers;
+  readonly settingsIcon = Settings;
+  readonly thermometerIcon = Thermometer;
+
+  readonly latitudePairs = LATITUDE_PAIRS;
 
   readonly isPopupOpen = computed(() => this.popup.config() !== null);
 
@@ -143,9 +149,7 @@ export class AppComponent implements OnInit {
     const p = this.state.selectedPair();
     const m = this.state.month();
     const val = this.sstData.sampleRealAir(p.lonA, p.lat, m);
-    if (val === null || !Number.isFinite(val)) return '--.-°C';
-    const sign = val > 0 ? '+' : '';
-    return `${sign}${val.toFixed(1)}°C`;
+    return this.i18n.formatTemp(val, 'temp', true);
   });
 
   /** Monospace tabular real air temperature for City 2 (Europe) */
@@ -153,10 +157,31 @@ export class AppComponent implements OnInit {
     const p = this.state.selectedPair();
     const m = this.state.month();
     const val = this.sstData.sampleRealAir(p.lonB, p.lat, m);
-    if (val === null || !Number.isFinite(val)) return '--.-°C';
-    const sign = val > 0 ? '+' : '';
-    return `${sign}${val.toFixed(1)}°C`;
+    return this.i18n.formatTemp(val, 'temp', true);
   });
+
+  readonly activePairName = computed(() => {
+    const p = this.state.selectedPair();
+    const t = this.i18n.t() as any;
+    const a = t[p.cityAKey] || p.cityAKey;
+    const b = t[p.cityBKey] || p.cityBKey;
+    return `${a} ↔ ${b}`;
+  });
+
+  readonly activePairContrast = computed(() => {
+    const p = this.state.selectedPair();
+    const diff = Math.abs(p.janTempB - p.janTempA);
+    const t = this.i18n.t();
+    return `${this.i18n.formatTemp(diff, 'delta', true)} (${t.seasonWinter})`;
+  });
+
+  readonly anomTickMin = computed(() => this.i18n.formatTemp(-3, 'delta', true));
+  readonly anomTickMid = computed(() => this.i18n.formatTemp(0, 'delta', false));
+  readonly anomTickMax = computed(() => this.i18n.formatTemp(3, 'delta', true));
+
+  readonly sstTickMin = computed(() => this.i18n.formatTemp(-20, 'temp', false));
+  readonly sstTickMid = computed(() => this.i18n.formatTemp(7.5, 'temp', true));
+  readonly sstTickMax = computed(() => this.i18n.formatTemp(35, 'temp', true));
 
   readonly langOptions = computed<DropdownOption<Lang>[]>(() =>
     this.i18n.langs.map(l => ({
@@ -223,6 +248,15 @@ export class AppComponent implements OnInit {
 
   openAbout() {
     this.about.open({ lang: this.i18n.lang() });
+  }
+
+  openSettings() {
+    this.popup.open({
+      id: 'settings',
+      title: computed(() => this.i18n.t().settingsTitle),
+      subtitle: computed(() => this.i18n.t().settingsSubtitle),
+      component: SettingsPopupComponent
+    });
   }
 
   openGlossary() {

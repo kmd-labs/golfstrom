@@ -101,6 +101,12 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     return Math.max(0, gsT - zonal);
   });
 
+  readonly westCityTempFormatted = computed(() => this.i18n.formatTemp(this.westCityTemp(), 'temp', true));
+  readonly eastCityTempFormatted = computed(() => this.i18n.formatTemp(this.eastCityTemp(), 'temp', true));
+  readonly gulfStreamTempFormatted = computed(() => this.i18n.formatTemp(this.gulfStreamTemp(), 'temp', true));
+  readonly gulfStreamAnomalyFormatted = computed(() => this.i18n.formatTemp(this.gulfStreamAnomaly(), 'delta', true));
+  readonly tempDifferenceFormatted = computed(() => this.i18n.formatTemp(Math.abs(this.eastCityTemp() - this.westCityTemp()), 'delta', true));
+
   private ctx!: CanvasRenderingContext2D;
   private animId: number | null = null;
   private lastTime = 0;

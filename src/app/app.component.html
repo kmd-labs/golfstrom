@@ -11,15 +11,16 @@
         (btnClick)="openAbout()">
       </app-brand>
 
-      <div class="header__settings glass-panel" role="group" [attr.aria-label]="t.changeLanguage">
-        <app-dropdown
+      <div class="header__settings glass-panel">
+        <app-button
           variant="ghost"
-          [icon]="bp.mobile() ? null : globeIcon"
-          [options]="langOptions()"
-          [value]="i18n.lang()"
-          [ariaLabel]="t.changeLanguage"
-          (valueChange)="i18n.setLang($event)">
-        </app-dropdown>
+          [iconOnly]="true"
+          [ariaLabel]="t.settingsAria"
+          [titleText]="t.settingsAria"
+          [appTooltip]="t.settingsAria"
+          (btnClick)="openSettings()">
+          <lucide-icon [img]="settingsIcon" [size]="15"></lucide-icon>
+        </app-button>
       </div>
     </div>
 
@@ -48,7 +49,7 @@
   <!-- Bottom Dock: 3 levels (1: date, thermal anomaly selector, glossary & data attribution; 2: weather for 2 cities left/right; 3: timeline) -->
   <footer class="dock-wrap">
     <div class="dock glass-panel">
-      <!-- Level 1: Date on left; Anomaly Selector, Legend, Data Attribution & Glossary on right -->
+      <!-- Level 1: Date on left; Anomaly Toggle, Layers Dropdown, Summary, Data, Glossary on right -->
       <div class="dock__level dock__level--1">
         <div class="dock__status-group" role="group">
           <div class="dock__date-pill" role="status" [appTooltip]="currentMonthName()">
@@ -57,7 +58,22 @@
         </div>
 
         <div class="dock__tools-group" role="group">
-          <!-- 1. Layers & Temperature Scale Dropdown (icon-only like el-nino) -->
+          <!-- 1. Thermal Anomaly Toggle Button -->
+          <app-button
+            class="dock__anomaly-btn"
+            variant="toggle"
+            size="sm"
+            [active]="state.sstMode() === 'anomaly'"
+            [ariaLabel]="state.sstMode() === 'anomaly' ? t.sstModeAnomaly : t.sstModeAbsolute"
+            [appTooltip]="t.thermalAnomaly"
+            (btnClick)="state.toggleSstMode()">
+            <lucide-icon [img]="thermometerIcon" [size]="14"></lucide-icon>
+            <span class="dock__toggle-text">{{ t.thermalAnomaly }}</span>
+          </app-button>
+
+          <span class="dock__tools-divider" aria-hidden="true"></span>
+
+          <!-- 2. Layers & Active Pins Dropdown -->
           <app-dropdown
             variant="ghost"
             direction="up"
@@ -68,31 +84,71 @@
             [appTooltip]="t.layersTooltip"
             [ariaLabel]="t.layers">
             <div class="dock__layers-content">
-              <div class="dock__layers-header">
-                <span class="dock__layers-title">{{ t.layerThermalScale }}</span>
-                <button
-                  type="button"
-                  class="dock__layers-toggle"
-                  (click)="state.toggleSstMode()">
-                  {{ state.sstMode() === 'anomaly' ? t.scaleAnomShort : t.scaleSstShort }}
-                </button>
+              <!-- Section A: Ocean Temperature Scale (Derived from Design System tokens) -->
+              <div class="dock__layers-section">
+                <div class="dock__layers-header">
+                  <span class="dock__layers-title">{{ state.sstMode() === 'anomaly' ? t.anomalyScaleTitle : t.sstScaleTitle }}</span>
+                  <span class="dock__layers-badge">{{ state.sstMode() === 'anomaly' ? t.scaleAnomShort : t.scaleSstShort }}</span>
+                </div>
+                <p class="dock__layers-desc">{{ state.sstMode() === 'anomaly' ? t.anomalyScaleDesc : t.sstScaleDesc }}</p>
+
+                <div class="dock__dropdown-scale">
+                  <div
+                    class="dock__dropdown-bar"
+                    [class.dock__dropdown-bar--anomaly]="state.sstMode() === 'anomaly'"></div>
+
+                  <div class="dock__dropdown-ticks">
+                    @if (state.sstMode() === 'anomaly') {
+                      <span>{{ anomTickMin() }}</span>
+                      <span>{{ anomTickMid() }}</span>
+                      <span>{{ anomTickMax() }}</span>
+                    } @else {
+                      <span>{{ sstTickMin() }}</span>
+                      <span>{{ sstTickMid() }}</span>
+                      <span>{{ sstTickMax() }}</span>
+                    }
+                  </div>
+                </div>
               </div>
 
-              <div
-                class="dock__dropdown-bar"
-                [class.dock__dropdown-bar--anomaly]="state.sstMode() === 'anomaly'"></div>
+              <div class="dock__layers-divider" aria-hidden="true"></div>
 
-              <div class="dock__dropdown-ticks">
-                <span>{{ state.sstMode() === 'anomaly' ? '-3°C' : '-20°C' }}</span>
-                <span>{{ state.sstMode() === 'anomaly' ? '0°C' : '+7.5°C' }}</span>
-                <span>{{ state.sstMode() === 'anomaly' ? '+3°C' : '+35°C' }}</span>
+              <!-- Section B: Latitude Comparison Pins & Active Pin Info -->
+              <div class="dock__layers-section">
+                <div class="dock__layers-header">
+                  <span class="dock__layers-title">{{ t.layersPinsTitle }}</span>
+                  <span class="dock__layers-badge">{{ activePair().lat.toFixed(1) }}°N</span>
+                </div>
+                <p class="dock__layers-desc">{{ t.layersPinsSubtitle }}</p>
+
+                <!-- Active Pin Card -->
+                <div class="dock__layers-active-card">
+                  <span class="dock__layers-pin-dot" aria-hidden="true"></span>
+                  <div class="dock__layers-pin-meta">
+                    <span class="dock__layers-pin-name">{{ activePairName() }}</span>
+                    <span class="dock__layers-pin-contrast">{{ activePairContrast() }}</span>
+                  </div>
+                </div>
+
+                <!-- Quick Pin Selector Pills -->
+                <div class="dock__layers-pins-grid" role="group" [attr.aria-label]="t.layersPinsTitle">
+                  @for (pair of latitudePairs; track pair.id) {
+                    <button
+                      type="button"
+                      class="dock__layers-pin-pill"
+                      [class.dock__layers-pin-pill--active]="state.selectedPair().id === pair.id"
+                      (click)="state.selectPair(pair)">
+                      {{ pair.lat.toFixed(0) }}°N
+                    </button>
+                  }
+                </div>
               </div>
             </div>
           </app-dropdown>
 
           <span class="dock__tools-divider" aria-hidden="true"></span>
 
-          <!-- 2. Summary Button (icon-only) -->
+          <!-- 3. Summary Button (icon-only) -->
           <app-button
             variant="ghost"
             [iconOnly]="true"
@@ -104,7 +160,7 @@
 
           <span class="dock__tools-divider" aria-hidden="true"></span>
 
-          <!-- 3. Data Sources Button (icon-only) -->
+          <!-- 4. Data Sources Button (icon-only) -->
           <app-button
             variant="ghost"
             [iconOnly]="true"
@@ -116,7 +172,7 @@
 
           <span class="dock__tools-divider" aria-hidden="true"></span>
 
-          <!-- 4. Glossary Button (icon-only) -->
+          <!-- 5. Glossary Button (icon-only) -->
           <app-button
             variant="ghost"
             [iconOnly]="true"
@@ -168,16 +224,15 @@
               <app-button
                 class="dock__play-btn"
                 variant="play"
-                size="sm"
                 [iconOnly]="true"
                 [active]="state.isPlaying()"
                 [ariaLabel]="state.isPlaying() ? t.pause : t.play"
                 [appTooltip]="state.isPlaying() ? t.pause : t.play"
                 (btnClick)="state.togglePlay()">
                 @if (state.isPlaying()) {
-                  <lucide-icon [img]="pauseIcon" [size]="14"></lucide-icon>
+                  <lucide-icon [img]="pauseIcon" [size]="15"></lucide-icon>
                 } @else {
-                  <lucide-icon [img]="playIcon" [size]="14"></lucide-icon>
+                  <lucide-icon [img]="playIcon" [size]="15"></lucide-icon>
                 }
               </app-button>
             </div>

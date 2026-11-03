@@ -7,19 +7,19 @@
     <div class="cross-section__stats">
       <div class="cross-section__stat">
         <span class="cross-section__stat-label">{{ getPairCityName(pair.cityAKey) }}:</span>
-        <span class="cross-section__stat-val">{{ westCityTemp() > 0 ? '+' : '' }}{{ westCityTemp().toFixed(1) }}°C</span>
+        <span class="cross-section__stat-val">{{ westCityTempFormatted() }}</span>
       </div>
 
       <div class="cross-section__stat cross-section__stat--gs">
         <lucide-icon [img]="flameIcon" [size]="14"></lucide-icon>
         <span class="cross-section__stat-label">{{ t.gulfStreamPeak }}:</span>
-        <span class="cross-section__stat-val">+{{ gulfStreamTemp().toFixed(1) }}°C</span>
+        <span class="cross-section__stat-val">{{ gulfStreamTempFormatted() }}</span>
       </div>
 
       <div class="cross-section__stat cross-section__stat--warm">
         <span class="cross-section__stat-label">{{ getPairCityName(pair.cityBKey) }}:</span>
-        <span class="cross-section__stat-val">+{{ eastCityTemp().toFixed(1) }}°C</span>
-        <app-badge [text]="t.warmerInEurope(Math.round(Math.abs(eastCityTemp() - westCityTemp())))" backgroundColor="#d37400"></app-badge>
+        <span class="cross-section__stat-val">{{ eastCityTempFormatted() }}</span>
+        <app-badge [text]="'+' + tempDifferenceFormatted() + ' ' + t.regionEurope" backgroundColor="#d37400"></app-badge>
       </div>
     </div>
   </div>
@@ -41,10 +41,10 @@
         <div class="cross-section__callout-header">
           <lucide-icon [img]="flameIcon" [size]="14" class="cross-section__callout-icon"></lucide-icon>
           <span class="cross-section__callout-title">{{ t.gulfStreamPeak }}</span>
-          <span class="cross-section__callout-badge">+{{ gulfStreamTemp().toFixed(1) }}°C</span>
+          <span class="cross-section__callout-badge">{{ gulfStreamTempFormatted() }}</span>
         </div>
         <div class="cross-section__callout-anomaly">
-          <span>★ {{ t.anomLegendTitle }}: +{{ gulfStreamAnomaly().toFixed(1) }}°C</span>
+          <span>★ {{ t.anomLegendTitle }}: {{ gulfStreamAnomalyFormatted() }}</span>
         </div>
         <p class="cross-section__callout-desc">
           {{ t.gulfStreamPeakDesc }}
@@ -67,10 +67,10 @@
         <div class="cross-section__hover-metrics">
           @if (hoverInfo()!.isOcean) {
             <span class="cross-section__hover-tag">🌊 {{ hoverInfo()!.depthM }} m</span>
-            <span class="cross-section__hover-val">{{ hoverInfo()!.temp > 0 ? '+' : '' }}{{ hoverInfo()!.temp.toFixed(1) }}°C</span>
+            <span class="cross-section__hover-val">{{ i18n.formatTemp(hoverInfo()!.temp, 'temp', true) }}</span>
           } @else {
             <span class="cross-section__hover-tag">☁ {{ hoverInfo()!.altKm.toFixed(1) }} km</span>
-            <span class="cross-section__hover-val">{{ hoverInfo()!.temp > 0 ? '+' : '' }}{{ hoverInfo()!.temp.toFixed(1) }}°C</span>
+            <span class="cross-section__hover-val">{{ i18n.formatTemp(hoverInfo()!.temp, 'temp', true) }}</span>
           }
         </div>
       </div>

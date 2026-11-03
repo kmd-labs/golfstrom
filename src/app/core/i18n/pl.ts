@@ -5,6 +5,14 @@ export const PL: Dict = {
   docTitle: 'KMD · Golfstrom',
   langName: 'Polski',
 
+  // Settings & Language
+  settingsTitle: 'Ustawienia',
+  settingsSubtitle: 'Język i jednostki',
+  settingsAria: 'Ustawienia',
+  temperatureUnit: 'Jednostka temperatury',
+  unitCelsius: 'Celsjusz',
+  unitFahrenheit: 'Fahrenheit',
+
   // Top HUD & Navigation
   changeLanguage: 'Język',
   chooseView: 'Widok',
@@ -51,8 +59,11 @@ export const PL: Dict = {
 
   // Legends & Status
   toggleSstMode: 'Tryb',
-  sstAbsolute: 'Bezwzględna SST (°C)',
-  sstAnomaly: 'Anomalia termiczna (°C)',
+  thermalAnomaly: 'Anomalia termiczna',
+  sstModeAnomaly: 'Anomalia termiczna',
+  sstModeAbsolute: 'Bezwzględna SST',
+  sstAbsolute: 'Bezwzględna SST',
+  sstAnomaly: 'Anomalia termiczna',
   sstLegendTitle: 'Temperatura powierzchni morza',
   anomLegendTitle: 'Zonalna anomalia temperatury',
   summary: 'Podsumowanie',
@@ -63,6 +74,13 @@ export const PL: Dict = {
   layerThermalScale: 'Skala temperatury oceanu',
   scaleSstShort: 'Bezwzględna SST',
   scaleAnomShort: 'Anomalia termiczna',
+  layersPinsTitle: 'Pary porównawcze szerokości',
+  layersPinsSubtitle: 'Transatlantyckie pary miast na tej samej szerokości',
+  activePinLabel: 'Aktywna para',
+  anomalyScaleTitle: 'Skala anomalii termicznej',
+  anomalyScaleDesc: 'Odchylenie od średniej dla danej szerokości',
+  sstScaleTitle: 'Temperatura powierzchni morza',
+  sstScaleDesc: 'Bezwzględna temperatura powierzchni wody',
 
   // Same-latitude comparison pairs
   seasonWinter: 'Zima',

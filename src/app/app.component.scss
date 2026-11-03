@@ -177,6 +177,23 @@
     opacity: 0.8;
   }
 
+  &__anomaly-btn {
+    display: inline-flex;
+    align-items: center;
+
+    .dock__toggle-text {
+      white-space: nowrap;
+      font-size: font-size("xs");
+      line-height: 1;
+    }
+
+    @include respond-to("mobile") {
+      .dock__toggle-text {
+        display: none;
+      }
+    }
+  }
+
   &__layers-dropdown {
     flex: none;
   }
@@ -184,10 +201,16 @@
   &__layers-content {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    width: 240px;
-    padding: 2px;
+    gap: 10px;
+    width: 270px;
+    padding: 4px;
     box-sizing: border-box;
+  }
+
+  &__layers-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
   &__layers-header {
@@ -199,28 +222,119 @@
 
   &__layers-title {
     font-size: font-size("xxs");
-    font-weight: font-weight("semibold");
+    font-weight: font-weight("bold");
     color: color("text-dim");
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
   }
 
-  &__layers-toggle {
+  &__layers-badge {
     display: inline-flex;
     align-items: center;
-    padding: 2px 8px;
+    padding: 2px 6px;
+    border-radius: radius("pill");
+    background: color("btn-bg");
+    border: 1px solid color("line");
+    font-size: 10px;
+    font-weight: font-weight("semibold");
+    color: color("text-main");
+    font-family: var(--font-family-mono);
+    line-height: 1;
+  }
+
+  &__layers-desc {
+    margin: 0;
+    font-size: font-size("xxs");
+    color: color("text-dim");
+    line-height: 1.35;
+  }
+
+  &__layers-divider {
+    height: 1px;
+    width: 100%;
+    background: color("line");
+    margin: 2px 0;
+  }
+
+  &__layers-active-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: radius("sm");
+    background: color("btn-bg");
+    border: 1px solid color("line");
+  }
+
+  &__layers-pin-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: color("accent");
+    box-shadow: 0 0 6px rgba(color("accent"), 0.5);
+    flex-shrink: 0;
+  }
+
+  &__layers-pin-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__layers-pin-name {
+    font-size: font-size("xs");
+    font-weight: font-weight("semibold");
+    color: color("text-bright");
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+
+  &__layers-pin-contrast {
+    font-size: 10.5px;
+    font-family: var(--font-family-mono);
+    color: color("accent");
+    font-weight: font-weight("semibold");
+    line-height: 1.2;
+  }
+
+  &__layers-pins-grid {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+
+  &__layers-pin-pill {
+    flex: 1 1 calc(33.333% - 4px);
+    min-width: 60px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: radius("pill");
     border: 1px solid color("line");
     background: color("btn-bg");
-    color: color("accent");
-    font-size: font-size("xxs");
+    color: color("text-main");
+    font-size: 11px;
+    font-family: var(--font-family-mono);
     font-weight: font-weight("semibold");
     cursor: pointer;
     transition: all transition("fast");
 
     &:hover {
       background: color("btn-hover");
-      border-color: color("accent");
+      border-color: color("line-strong");
+      color: color("text-bright");
+    }
+
+    &--active {
+      background: color("btn-active-blue");
+      border-color: color("btn-active-blue-border");
+      color: color("btn-active-blue-border");
     }
   }
 
@@ -231,27 +345,25 @@
     border: 1px solid color("line");
     background: linear-gradient(
       to right,
-      #4f46e5,
-      #2563eb,
-      #38bdf8,
-      #829c9e,
-      #7b8ead,
-      #839dbd,
-      #c1d1de,
-      #edd685,
-      #d37400,
-      #cc3e1c,
-      #a40d19
+      color("sst-m2"),
+      color("sst-5"),
+      color("sst-10"),
+      color("sst-15"),
+      color("sst-20"),
+      color("sst-25-5"),
+      color("sst-29-2"),
+      color("sst-31"),
+      color("sst-35")
     );
 
     &--anomaly {
       background: linear-gradient(
         to right,
-        #2563eb,
-        #60a5fa,
-        #f5f7fb,
-        #e6922e,
-        #dc2626
+        color("anom-m3"),
+        color("anom-m1-5"),
+        color("anom-0"),
+        color("anom-p1-5"),
+        color("anom-p3")
       );
     }
   }
@@ -259,7 +371,7 @@
   &__dropdown-ticks {
     display: flex;
     justify-content: space-between;
-    font-family: $font-family-mono;
+    font-family: var(--font-family-mono);
     font-size: font-size("xxs");
     font-variant-numeric: tabular-nums;
     color: color("text-dim");
@@ -396,6 +508,7 @@
       min-width: 32px;
       padding: 0;
       justify-content: center;
+      border-radius: radius("pill") !important;
 
       lucide-icon,
       svg {

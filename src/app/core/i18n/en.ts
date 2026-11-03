@@ -5,6 +5,14 @@ export const EN: Dict = {
   docTitle: 'KMD · Golfstrom',
   langName: 'English',
 
+  // Settings & Language
+  settingsTitle: 'Settings',
+  settingsSubtitle: 'Language & units',
+  settingsAria: 'Settings',
+  temperatureUnit: 'Temperature unit',
+  unitCelsius: 'Celsius',
+  unitFahrenheit: 'Fahrenheit',
+
   // Top HUD & Navigation
   changeLanguage: 'Language',
   chooseView: 'View',
@@ -51,8 +59,11 @@ export const EN: Dict = {
 
   // Legends & Status
   toggleSstMode: 'Mode',
-  sstAbsolute: 'Absolute SST (°C)',
-  sstAnomaly: 'Thermal Anomaly (°C)',
+  thermalAnomaly: 'Thermal Anomaly',
+  sstModeAnomaly: 'Thermal Anomaly',
+  sstModeAbsolute: 'Absolute SST',
+  sstAbsolute: 'Absolute SST',
+  sstAnomaly: 'Thermal Anomaly',
   sstLegendTitle: 'Sea Surface Temperature',
   anomLegendTitle: 'Zonal Temperature Anomaly',
   summary: 'Summary',
@@ -63,6 +74,13 @@ export const EN: Dict = {
   layerThermalScale: 'Ocean Temperature Scale',
   scaleSstShort: 'Absolute SST',
   scaleAnomShort: 'Thermal Anomaly',
+  layersPinsTitle: 'Latitude Comparison Pins',
+  layersPinsSubtitle: 'Same-latitude transatlantic paired locations',
+  activePinLabel: 'Active Pair',
+  anomalyScaleTitle: 'Thermal Anomaly Scale',
+  anomalyScaleDesc: 'Deviation from zonal latitude mean',
+  sstScaleTitle: 'Sea Surface Temperature',
+  sstScaleDesc: 'Absolute ocean surface temperature',
 
   // Same-latitude comparison pairs
   seasonWinter: 'Winter',

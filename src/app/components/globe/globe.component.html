@@ -17,7 +17,7 @@
       (click)="onPinClick(pin.data); $event.stopPropagation()">
       <span class="pin-label__title">{{ getPairTitle(pin.data) }}</span>
       <span class="pin-label__diff">
-        ★ Δ {{ Math.abs(pin.data.janTempB - pin.data.janTempA) }}°C ({{ t.seasonWinter }})
+        ★ Δ {{ i18n.formatTemp(Math.abs(pin.data.janTempB - pin.data.janTempA), 'delta', false) }} ({{ t.seasonWinter }})
       </span>
     </div>
   }

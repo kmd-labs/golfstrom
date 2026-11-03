@@ -27,13 +27,13 @@
         <div class="pair-modal__stat">
           <span class="pair-modal__stat-label">{{ t.seasonJanWinter }}</span>
           <span class="pair-modal__stat-val" [class.pair-modal__stat-val--cold]="p.janTempA < 5">
-            {{ p.janTempA > 0 ? '+' : '' }}{{ p.janTempA }}°C
+            {{ i18n.formatTemp(p.janTempA, 'temp', true) }}
           </span>
         </div>
         <div class="pair-modal__stat">
           <span class="pair-modal__stat-label">{{ t.seasonJulSummer }}</span>
           <span class="pair-modal__stat-val">
-            +{{ p.julTempA }}°C
+            {{ i18n.formatTemp(p.julTempA, 'temp', true) }}
           </span>
         </div>
       </div>
@@ -49,13 +49,13 @@
         <div class="pair-modal__stat">
           <span class="pair-modal__stat-label">{{ t.seasonJanWinter }}</span>
           <span class="pair-modal__stat-val pair-modal__stat-val--warm">
-            {{ p.janTempB > 0 ? '+' : '' }}{{ p.janTempB }}°C
+            {{ i18n.formatTemp(p.janTempB, 'temp', true) }}
           </span>
         </div>
         <div class="pair-modal__stat">
           <span class="pair-modal__stat-label">{{ t.seasonJulSummer }}</span>
           <span class="pair-modal__stat-val">
-            +{{ p.julTempB }}°C
+            {{ i18n.formatTemp(p.julTempB, 'temp', true) }}
           </span>
         </div>
       </div>
@@ -63,7 +63,7 @@
   </div>
 
   <div class="pair-modal__delta">
-    <span>★ {{ t.winterDifference }}: {{ t.warmerInEurope(Math.abs(p.janTempB - p.janTempA)) }}</span>
+    <span>★ {{ t.winterDifference }}: +{{ i18n.formatTemp(Math.abs(p.janTempB - p.janTempA), 'delta', false) }} ({{ t.regionEurope }})</span>
   </div>
 
   <p class="pair-modal__desc">

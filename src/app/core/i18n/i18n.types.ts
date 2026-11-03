@@ -1,4 +1,5 @@
 export type Lang = 'en' | 'pl';
+export type TempUnit = 'C' | 'F';
 
 export interface GlossaryTerm {
   term: string;
@@ -51,6 +52,14 @@ export interface Dict {
   docTitle: string;
   langName: string;
 
+  // Settings & Language
+  settingsTitle: string;
+  settingsSubtitle: string;
+  settingsAria: string;
+  temperatureUnit: string;
+  unitCelsius: string;
+  unitFahrenheit: string;
+
   // Top HUD & Navigation
   changeLanguage: string;
   chooseView: string;
@@ -71,6 +80,9 @@ export interface Dict {
 
   // Legends & Status
   toggleSstMode: string;
+  thermalAnomaly: string;
+  sstModeAnomaly: string;
+  sstModeAbsolute: string;
   sstAbsolute: string;
   sstAnomaly: string;
   sstLegendTitle: string;
@@ -83,6 +95,13 @@ export interface Dict {
   layerThermalScale: string;
   scaleSstShort: string;
   scaleAnomShort: string;
+  layersPinsTitle: string;
+  layersPinsSubtitle: string;
+  activePinLabel: string;
+  anomalyScaleTitle: string;
+  anomalyScaleDesc: string;
+  sstScaleTitle: string;
+  sstScaleDesc: string;
 
   // Same-latitude comparison pairs
   seasonWinter: string;
