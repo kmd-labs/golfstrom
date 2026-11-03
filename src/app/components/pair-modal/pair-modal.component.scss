@@ -1,0 +1,100 @@
+@use "variables" as *;
+
+.pair-modal {
+  display: flex;
+  flex-direction: column;
+  gap: spacing("md");
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: spacing("md");
+
+    @include respond-to("mobile") {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__card {
+    padding: 12px 14px;
+    border-radius: radius("card");
+    border: 1px solid color("line");
+    background: color("btn-bg");
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &--east {
+      border-color: rgba(color("accent"), 0.35);
+      background: rgba(color("accent"), 0.04);
+    }
+  }
+
+  &__card-title {
+    margin: 0;
+    font-size: font-size("sm");
+    font-weight: font-weight("semibold");
+    color: color("text-bright");
+  }
+
+  &__card-coords {
+    font-size: font-size("xxs");
+    color: color("text-dim");
+    font-family: var(--font-family-mono);
+  }
+
+  &__stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid color("line");
+  }
+
+  &__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+
+    &-label {
+      font-size: font-size("xxs");
+      color: color("text-dim");
+    }
+
+    &-val {
+      font-size: font-size("base");
+      font-weight: font-weight("bold");
+      color: color("text-bright");
+
+      &--warm {
+        color: color("accent");
+      }
+
+      &--cold {
+        color: color("cool");
+      }
+    }
+  }
+
+  &__delta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: radius("control");
+    background: rgba(color("accent"), 0.12);
+    border: 1px solid rgba(color("accent"), 0.3);
+    font-size: font-size("xs");
+    font-weight: font-weight("semibold");
+    color: color("accent");
+  }
+
+  &__desc {
+    margin: 0;
+    font-size: font-size("xs");
+    line-height: 1.6;
+    color: color("text-desc");
+  }
+}

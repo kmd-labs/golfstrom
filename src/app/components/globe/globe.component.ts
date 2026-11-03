@@ -1,0 +1,1082 @@
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  ViewChildren,
+  QueryList,
+  AfterViewInit,
+  OnDestroy,
+  NgZone,
+  inject,
+  effect
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as d3Geo from 'd3-geo';
+import * as topojson from 'topojson-client';
+import { GolfstromStateService } from '../../core/services/golfstrom-state.service';
+import { GolfstromMathService } from '../../core/services/golfstrom-math.service';
+import { SstDataService } from '../../core/services/sst-data.service';
+import { ThemeService } from '@kmd/design-system/services/theme.service';
+import { PopupService } from '@kmd/design-system/ui/popup/popup.service';
+import { TooltipService } from '@kmd/design-system/ui/tooltip/tooltip.service';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { LATITUDE_PAIRS } from '../../core/constants/golfstrom-data';
+import { LatitudePairPin } from '../../core/models/golfstrom.model';
+import { PairModalComponent } from '../pair-modal/pair-modal.component';
+
+interface PinDisplay {
+  data: LatitudePairPin;
+  spriteA: THREE.Sprite;
+  spriteB: THREE.Sprite;
+  posA: THREE.Vector3;
+  posB: THREE.Vector3;
+  worldPos: THREE.Vector3;
+  screenX: number;
+  screenY: number;
+  visible: boolean;
+  opacity: number;
+}
+
+@Component({
+  selector: 'app-globe',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './globe.component.html',
+  styleUrl: './globe.component.scss'
+})
+export class GlobeComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('canvasRef') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChildren('pinLabel') pinLabelRefs!: QueryList<ElementRef<HTMLDivElement>>;
+
+  readonly state = inject(GolfstromStateService);
+  readonly math = inject(GolfstromMathService);
+  readonly sstData = inject(SstDataService);
+  readonly theme = inject(ThemeService);
+  readonly popup = inject(PopupService);
+  readonly tooltip = inject(TooltipService);
+  readonly i18n = inject(I18nService);
+  private readonly ngZone = inject(NgZone);
+
+  readonly Math = Math;
+
+  private renderer!: THREE.WebGLRenderer;
+  private scene!: THREE.Scene;
+  private camera!: THREE.PerspectiveCamera;
+  private controls!: OrbitControls;
+
+  private globeMesh?: THREE.Mesh;
+  private sstTex!: THREE.DataTexture;
+  private texData!: Uint8Array;
+  private readonly GW = 720;
+  private readonly GH = 360;
+  private readonly NG = 720 * 360;
+
+  private landCanvas!: HTMLCanvasElement;
+  private landTex!: THREE.CanvasTexture;
+  private landMat?: THREE.MeshLambertMaterial;
+  private loadedLandFeature: any = null;
+  private landMask: Uint8Array | null = null;
+  private relief: { data: Uint8Array; w: number; h: number; base: number } | null = null;
+  private reliefCanvas: HTMLCanvasElement | null = null;
+
+  // Latitude comparison pins
+  pins: PinDisplay[] = [];
+  private pinGroup = new THREE.Group();
+
+  // Inspect Point Marker & Raycasting
+  private inspectPin?: THREE.Sprite;
+  private inspectedPoint: { lon: number; lat: number; p: THREE.Vector3 } | null = null;
+  private readonly raycaster = new THREE.Raycaster();
+  private readonly mouseVec = new THREE.Vector2();
+  private downXY: [number, number] | null = null;
+  private hoverPin: LatitudePairPin | null = null;
+
+  private lastTooltipSx = -999;
+  private lastTooltipSy = -999;
+  private lastTooltipFacing = -999;
+  private lastTooltipMonth = -999;
+
+  private animId: number | null = null;
+  private lastTime = 0;
+  private lastRecolorMonth = -999;
+  private lastRecolorMode = '';
+  private lastCamPos = new THREE.Vector3();
+
+  private readonly pv = new THREE.Vector3();
+  private readonly toCam = new THREE.Vector3();
+
+  constructor() {
+    effect(() => {
+      // Re-render when dataset finishes loading
+      if (this.sstData.isLoaded()) {
+        const m = this.state.month();
+        this.recolorSstTexture(m, this.state.sstMode());
+        if (this.loadedLandFeature) {
+          this.drawLand(this.loadedLandFeature);
+        }
+      }
+    });
+
+    effect(() => {
+      this.sstData.exactAirLoaded();
+      if (this.inspectedPoint) {
+        this.updateInspectTooltip(true);
+      }
+    });
+
+    effect(() => {
+      if (this.state.viewMode() === 'globe') {
+        requestAnimationFrame(() => this.handleResize());
+      } else {
+        this.clearInspectedPoint();
+      }
+    });
+  }
+
+  ngAfterViewInit() {
+    this.ngZone.runOutsideAngular(() => {
+      this.initThree();
+      this.initSstData();
+      this.initLandOverlay();
+      this.initPins();
+      this.initInspectPin();
+      window.addEventListener('resize', this.onResize);
+      this.animate(0);
+
+      this.sstData.loadData().then(() => {
+        const m = this.state.month();
+        this.recolorSstTexture(m, this.state.sstMode());
+        if (this.loadedLandFeature) {
+          this.drawLand(this.loadedLandFeature);
+        }
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.animId !== null) {
+      cancelAnimationFrame(this.animId);
+    }
+    window.removeEventListener('resize', this.onResize);
+    this.controls?.dispose();
+    this.renderer?.dispose();
+    this.sstTex?.dispose();
+    this.landTex?.dispose();
+  }
+
+  private readonly onResize = () => {
+    this.handleResize();
+  };
+
+  private initThree() {
+    const canvas = this.canvasRef.nativeElement;
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(this.theme.getTokenColor('globe-bg', '#f5f7fb'));
+
+    this.camera = new THREE.PerspectiveCamera(
+      40,
+      canvas.clientWidth / (canvas.clientHeight || 1),
+      0.1,
+      200
+    );
+
+    // Initial camera position centered on North Atlantic (lon -40°, lat 38°)
+    this.math.pos(-40, 38, 22, this.camera.position);
+
+    this.controls = new OrbitControls(this.camera, canvas);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+    this.controls.minDistance = 11.0;
+    this.controls.maxDistance = 35.0;
+    this.controls.enablePan = false;
+    this.controls.target.set(0, 0, 0);
+    this.controls.update();
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xdbe4f0, 1.3);
+    this.scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 8);
+    this.scene.add(dirLight);
+
+    this.initGlowAndBokeh();
+  }
+
+  /**
+   * Ported from el-nino: limb-normalized BackSide atmospheric halo shader.
+   * Completely eliminates the solid grey circle bug caused by dot(n, v) clamping.
+   */
+  private initGlowAndBokeh() {
+    const R = this.math.R;
+    const glowMat = new THREE.ShaderMaterial({
+      uniforms: {
+        c: { value: new THREE.Color(this.theme.getTokenColor('globe-glow', '#0f172a')) },
+        uOpacity: { value: 0.22 },
+        uPower: { value: 2.2 }
+      },
+      vertexShader: `
+        varying vec3 vN;
+        varying vec3 vV;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vN = normalize(normalMatrix * normal);
+          vV = normalize(-mv.xyz);
+          gl_Position = projectionMatrix * mv;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 c;
+        uniform float uOpacity;
+        uniform float uPower;
+        varying vec3 vN;
+        varying vec3 vV;
+        void main() {
+          float d = clamp(-dot(vN, vV), 0.0, 1.0);
+          float t = clamp(d / 0.4938, 0.0, 1.0);
+          float a = pow(t, uPower) * uOpacity;
+          gl_FragColor = vec4(c, a);
+        }
+      `,
+      side: THREE.BackSide,
+      blending: THREE.NormalBlending,
+      transparent: true,
+      depthWrite: false
+    });
+
+    const haloMesh = new THREE.Mesh(new THREE.SphereGeometry(R * 1.15, 64, 32), glowMat);
+    this.scene.add(haloMesh);
+
+    this.initBokeh();
+  }
+
+  /**
+   * Soft bokeh background discs drifting in world space (matching el-nino).
+   */
+  private initBokeh() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const ctx = c.getContext('2d')!;
+    const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.35, 'rgba(255,255,255,0.7)');
+    g.addColorStop(0.7, 'rgba(255,255,255,0.22)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+
+    const count = 180;
+    const pGeo = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    const col = new Float32Array(count * 3);
+    const v = new THREE.Vector3();
+    const tints = ['primary-200', 'info-200', 'primary-100', 'warning-100'];
+    const fallbacks = ['#bfdbfe', '#bae6fd', '#dbeafe', '#fbe8d0'];
+    const colors = tints.map((t, i) => new THREE.Color(this.theme.getTokenColor(t, fallbacks[i])));
+
+    for (let i = 0; i < count; i++) {
+      v.randomDirection().multiplyScalar(60 + Math.random() * 90);
+      pos[i * 3] = v.x;
+      pos[i * 3 + 1] = v.y;
+      pos[i * 3 + 2] = v.z;
+      const colEntry = colors[i % colors.length];
+      col[i * 3] = colEntry.r;
+      col[i * 3 + 1] = colEntry.g;
+      col[i * 3 + 2] = colEntry.b;
+    }
+
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+
+    const pMat = new THREE.PointsMaterial({
+      map: tex,
+      size: 26,
+      sizeAttenuation: true,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.24,
+      depthWrite: false
+    });
+    const points = new THREE.Points(pGeo, pMat);
+    this.scene.add(points);
+  }
+
+  private initSstData() {
+    this.texData = new Uint8Array(this.NG * 4);
+    this.sstTex = new THREE.DataTexture(this.texData, this.GW, this.GH, THREE.RGBAFormat);
+    this.sstTex.colorSpace = THREE.SRGBColorSpace;
+    this.sstTex.magFilter = THREE.LinearFilter;
+    this.sstTex.minFilter = THREE.LinearFilter;
+    this.sstTex.wrapS = THREE.RepeatWrapping;
+
+    this.recolorSstTexture(this.state.month(), this.state.sstMode());
+
+    const globeMat = new THREE.MeshBasicMaterial({ map: this.sstTex });
+    globeMat.onBeforeCompile = shader => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <map_fragment>',
+        `
+          vec2 texel = vec2(1.0 / ${this.GW.toFixed(1)}, 1.0 / ${this.GH.toFixed(1)});
+          vec4 sampledDiffuseColor = texture2D(map, vMapUv) * 0.4;
+          sampledDiffuseColor += texture2D(map, vMapUv + vec2(texel.x, 0.0)) * 0.15;
+          sampledDiffuseColor += texture2D(map, vMapUv - vec2(texel.x, 0.0)) * 0.15;
+          sampledDiffuseColor += texture2D(map, vMapUv + vec2(0.0, texel.y)) * 0.15;
+          sampledDiffuseColor += texture2D(map, vMapUv - vec2(0.0, texel.y)) * 0.15;
+          diffuseColor *= sampledDiffuseColor;
+        `
+      );
+    };
+
+    this.globeMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(this.math.R, 128, 64),
+      globeMat
+    );
+    this.scene.add(this.globeMesh);
+  }
+
+  private clamp255(v: number): number {
+    return v < 0 ? 0 : v > 255 ? 255 : v;
+  }
+
+  /**
+   * Fast, optimized texture recolor using precomputed lookup tables.
+   * Runs in ~3ms without freezing frame rate during animation.
+   */
+  private recolorSstTexture(month: number, mode: 'sst' | 'anomaly') {
+    if (!this.texData) return;
+    this.lastRecolorMonth = month;
+    this.lastRecolorMode = mode;
+
+    const { lut, lo, hi } = mode === 'sst' ? this.math.lutSst : this.math.lutAnom;
+    const sc = 255 / (hi - lo);
+    const bin = this.sstData.sstBin;
+    const pair = this.sstData.getKeyframePair(month);
+
+    if (bin && pair) {
+      const offsetA = pair.indexA * this.NG;
+      const offsetB = pair.indexB * this.NG;
+      const t = pair.t;
+
+      const curAir = this.sstData.getInterpolatedAir(pair);
+      const latRowAir = this.sstData.latRowAir;
+      const lonColAir = this.sstData.lonColAir;
+      const hasAir = curAir && latRowAir.length === this.GH && lonColAir.length === this.GW;
+      const tex = this.texData;
+
+      for (let y = 0; y < this.GH; y++) {
+        const rowOff = y * this.GW;
+        const row = hasAir ? latRowAir[y] : null;
+        const zm = mode === 'anomaly' && row ? row.zonalMean : 0;
+        const r0Off = row ? row.r0 * 36 : 0;
+        const r1Off = row ? row.r1 * 36 : 0;
+        const tr = row ? row.tr : 0;
+
+        for (let x = 0; x < this.GW; x++) {
+          const i = rowOff + x;
+          const va = bin[offsetA + i];
+          const vb = bin[offsetB + i];
+          const o = i * 4;
+
+          if (va !== 255 && vb !== 255) {
+            // Ocean SST
+            const vByte = va + (vb - va) * t;
+            const sst = vByte * 0.2 - 5.0;
+            const val = mode === 'anomaly' ? sst - zm : sst;
+
+            const k = this.clamp255(Math.round((val - lo) * sc)) * 3;
+            tex[o] = lut[k];
+            tex[o + 1] = lut[k + 1];
+            tex[o + 2] = lut[k + 2];
+            tex[o + 3] = 255;
+          } else if (hasAir && curAir) {
+            // Land Surface Temperature (ERA5 reanalysis) - always enabled
+            const col = lonColAir[x];
+            const a0 = curAir[r0Off + col.c0];
+            const a1 = curAir[r0Off + col.c1];
+            const b0 = curAir[r1Off + col.c0];
+            const b1 = curAir[r1Off + col.c1];
+
+            const top = a0 + (a1 - a0) * col.tc;
+            const bot = b0 + (b1 - b0) * col.tc;
+            const airTemp = top + (bot - top) * tr;
+            const val = mode === 'anomaly' ? airTemp - zm : airTemp;
+
+            const k = this.clamp255(Math.round((val - lo) * sc)) * 3;
+            tex[o] = lut[k];
+            tex[o + 1] = lut[k + 1];
+            tex[o + 2] = lut[k + 2];
+            tex[o + 3] = 255;
+          } else {
+            tex[o] = 226;
+            tex[o + 1] = 232;
+            tex[o + 2] = 240;
+            tex[o + 3] = 255;
+          }
+        }
+      }
+    } else {
+      // Analytical fallback
+      for (let y = 0; y < this.GH; y++) {
+        const lat = 90 - (y + 0.5) * (180 / this.GH);
+        for (let x = 0; x < this.GW; x++) {
+          const lon = (x + 0.5) * (360 / this.GW) - 180;
+          const o = (y * this.GW + x) * 4;
+
+          const val = mode === 'sst'
+            ? this.math.getSst(lon, lat, month)
+            : this.math.getAnomaly(lon, lat, month);
+
+          const k = this.clamp255(Math.round((val - lo) * sc)) * 3;
+          this.texData[o] = lut[k];
+          this.texData[o + 1] = lut[k + 1];
+          this.texData[o + 2] = lut[k + 2];
+          this.texData[o + 3] = 255;
+        }
+      }
+    }
+
+    this.sstTex.needsUpdate = true;
+  }
+
+  private initLandOverlay() {
+    this.landCanvas = document.createElement('canvas');
+    this.landCanvas.width = 2048;
+    this.landCanvas.height = 1024;
+
+    this.landTex = new THREE.CanvasTexture(this.landCanvas);
+    this.landTex.colorSpace = THREE.SRGBColorSpace;
+
+    this.landMat = new THREE.MeshLambertMaterial({
+      map: this.landTex,
+      transparent: true,
+      depthWrite: false
+    });
+
+    const landMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(this.math.R * 1.003, 192, 96),
+      this.landMat
+    );
+    this.scene.add(landMesh);
+
+    this.drawLand(null);
+    this.loadLandAndRelief();
+  }
+
+  private async loadLandAndRelief() {
+    try {
+      let resp = await fetch('assets/data/land-50m.json');
+      if (!resp.ok) {
+        resp = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-50m.json');
+      }
+      const topology = await resp.json();
+      const landFeature = topojson.feature(topology, topology.objects.land as any);
+      this.loadedLandFeature = landFeature;
+      this.buildLandMask(landFeature);
+      this.drawLand(landFeature);
+
+      this.ngZone.run(() => {
+        this.state.mapLoaded.set(true);
+      });
+
+      await this.loadRelief();
+      this.loadElevation();
+    } catch (err) {
+      console.warn('Could not load land data:', err);
+    }
+  }
+
+  private buildLandMask(land: any) {
+    const mc = document.createElement('canvas');
+    mc.width = 360;
+    mc.height = 180;
+    const mctx = mc.getContext('2d', { willReadFrequently: true });
+    if (!mctx) return;
+    const proj = d3Geo.geoEquirectangular().scale(360 / (2 * Math.PI)).translate([180, 90]);
+    mctx.beginPath();
+    d3Geo.geoPath(proj, mctx)(land);
+    mctx.fillStyle = '#000';
+    mctx.fill();
+    const px = mctx.getImageData(0, 0, 360, 180).data;
+    const mask = new Uint8Array(360 * 180);
+    for (let i = 0; i < mask.length; i++) mask[i] = px[i * 4 + 3] > 64 ? 1 : 0;
+    this.landMask = mask;
+  }
+
+  isLand(lon: number, lat: number): boolean {
+    if (this.loadedLandFeature) {
+      try {
+        return d3Geo.geoContains(this.loadedLandFeature, [lon, lat]);
+      } catch {
+        // fallback
+      }
+    }
+    if (!this.landMask) return false;
+    const c = Math.floor(((((lon + 180) % 360) + 360) % 360));
+    const r = this.math.clamp(Math.floor(90 - lat), 0, 179);
+    return this.landMask[r * 360 + c] === 1;
+  }
+
+  private async loadRelief() {
+    try {
+      const resp = await fetch('assets/data/relief-2k.bin.gz');
+      if (!resp.ok) return;
+      let buf = await resp.arrayBuffer();
+
+      const magic = new Uint8Array(buf, 0, Math.min(2, buf.byteLength));
+      if (magic[0] === 0x1f && magic[1] === 0x8b) {
+        if (typeof DecompressionStream !== 'undefined') {
+          const stream = new Response(buf).body!.pipeThrough(new DecompressionStream('gzip'));
+          buf = await new Response(stream).arrayBuffer();
+        }
+      }
+
+      const head = new DataView(buf);
+      if (buf.byteLength >= 10 && head.getUint32(0, false) === 0x4b4d4452) {
+        const w = head.getUint16(4, true);
+        const h = head.getUint16(6, true);
+        const base = head.getUint8(8);
+        if (buf.byteLength >= 10 + w * h) {
+          this.relief = { data: new Uint8Array(buf, 10, w * h), w, h, base };
+          if (this.loadedLandFeature) {
+            this.drawLand(this.loadedLandFeature);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not load relief:', err);
+    }
+  }
+
+  private loadElevation() {
+    new THREE.TextureLoader().load('assets/data/elevation-1k.png', tex => {
+      if (!this.landMat) return;
+      tex.colorSpace = THREE.NoColorSpace;
+      this.landMat.displacementMap = tex;
+      this.landMat.displacementScale = this.math.R * (9000 / 6371000) * 8;
+      this.landMat.needsUpdate = true;
+    });
+  }
+
+  private drawLand(land: any) {
+    const ctx = this.landCanvas.getContext('2d');
+    if (!ctx) return;
+    const Wc = this.landCanvas.width;
+    const Hc = this.landCanvas.height;
+
+    ctx.clearRect(0, 0, Wc, Hc);
+    const proj = d3Geo
+      .geoEquirectangular()
+      .scale(Wc / (2 * Math.PI))
+      .translate([Wc / 2, Hc / 2])
+      .precision(0.2);
+    const path = d3Geo.geoPath(proj, ctx);
+
+    // Graticules
+    ctx.beginPath();
+    path(d3Geo.geoGraticule().step([30, 30])());
+    ctx.strokeStyle = this.theme.getTokenColor('globe-graticule', 'rgba(15, 23, 42, 0.08)');
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    if (land) {
+      // Land temperature is always enabled:
+      // Continents are transparent so underlying globeMesh temperatures shine through,
+      // with semi-transparent mountain relief highlights/shadows on top.
+      const reliefCanvas = this.buildReliefLayer();
+      if (reliefCanvas) {
+        ctx.save();
+        ctx.beginPath();
+        path(land);
+        ctx.clip();
+        ctx.drawImage(reliefCanvas, 0, 0, Wc, Hc);
+        ctx.restore();
+      }
+
+      // Coastlines (crisp continent borders)
+      ctx.beginPath();
+      path(land);
+      ctx.strokeStyle = this.theme.getTokenColor('globe-land-stroke', 'rgba(15, 23, 42, 0.35)');
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+    }
+
+    this.landTex.needsUpdate = true;
+  }
+
+  private buildReliefLayer(): HTMLCanvasElement | null {
+    if (!this.relief) return null;
+    if (!this.reliefCanvas) {
+      this.reliefCanvas = document.createElement('canvas');
+      this.reliefCanvas.width = this.relief.w;
+      this.reliefCanvas.height = this.relief.h;
+    }
+    const cx = this.reliefCanvas.getContext('2d');
+    if (!cx) return null;
+
+    const { data, w, h, base } = this.relief;
+    const img = cx.createImageData(w, h);
+    const d = img.data;
+
+    for (let i = 0; i < w * h; i++) {
+      const raw = data[i];
+      const diff = (raw - base) / 46.0;
+      const factor = Math.max(0, Math.min(2, 1 + diff * 0.5));
+      const o = i * 4;
+
+      if (factor > 1.02) {
+        // Sunlit mountain ridge highlight (soft white)
+        d[o] = 255;
+        d[o + 1] = 255;
+        d[o + 2] = 255;
+        d[o + 3] = Math.min(140, Math.round((factor - 1.0) * 180));
+      } else if (factor < 0.98) {
+        // Shadowed mountain valley (soft dark shadow)
+        d[o] = 15;
+        d[o + 1] = 23;
+        d[o + 2] = 42;
+        d[o + 3] = Math.min(140, Math.round((1.0 - factor) * 190));
+      } else {
+        d[o] = 0;
+        d[o + 1] = 0;
+        d[o + 2] = 0;
+        d[o + 3] = 0;
+      }
+    }
+
+    cx.putImageData(img, 0, 0);
+    return this.reliefCanvas;
+  }
+
+  private initPins() {
+    this.scene.add(this.pinGroup);
+
+    const pinCanvas = document.createElement('canvas');
+    pinCanvas.width = pinCanvas.height = 128;
+    const pc = pinCanvas.getContext('2d')!;
+    pc.translate(64, 64);
+    pc.strokeStyle = 'rgba(211, 116, 0, 0.4)';
+    pc.lineWidth = 10;
+    pc.beginPath();
+    pc.arc(0, 0, 52, 0, Math.PI * 2);
+    pc.stroke();
+    pc.fillStyle = '#d37400';
+    pc.beginPath();
+    pc.arc(0, 0, 36, 0, Math.PI * 2);
+    pc.fill();
+    pc.fillStyle = '#ffffff';
+    pc.beginPath();
+    pc.arc(0, 0, 16, 0, Math.PI * 2);
+    pc.fill();
+
+    const pinTex = new THREE.CanvasTexture(pinCanvas);
+
+    this.pins = LATITUDE_PAIRS.map(data => {
+      const posA = this.math.pos(data.lonA, data.lat, this.math.R * 1.025, new THREE.Vector3());
+      const spA = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: pinTex, depthTest: false, transparent: true })
+      );
+      spA.scale.set(0.7, 0.7, 1);
+      spA.position.copy(posA);
+      this.pinGroup.add(spA);
+
+      const posB = this.math.pos(data.lonB, data.lat, this.math.R * 1.025, new THREE.Vector3());
+      const spB = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: pinTex, depthTest: false, transparent: true })
+      );
+      spB.scale.set(0.7, 0.7, 1);
+      spB.position.copy(posB);
+      this.pinGroup.add(spB);
+
+      const midLon = (data.lonA + data.lonB) / 2;
+      const midPos = this.math.pos(midLon, data.lat, this.math.R * 1.03, new THREE.Vector3());
+
+      return {
+        data,
+        spriteA: spA,
+        spriteB: spB,
+        posA,
+        posB,
+        worldPos: midPos,
+        screenX: 0,
+        screenY: 0,
+        visible: true,
+        opacity: 1
+      };
+    });
+  }
+
+  private initInspectPin() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const ctx = c.getContext('2d')!;
+    ctx.translate(64, 64);
+    ctx.strokeStyle = 'rgba(211, 116, 0, 0.45)';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.arc(0, 0, 52, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.arc(0, 0, 40, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#d37400';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(0, 0, 40, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#d37400';
+    ctx.beginPath();
+    ctx.arc(0, 0, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this.inspectPin = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: tex,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false
+      })
+    );
+    this.inspectPin.renderOrder = 20;
+    this.inspectPin.scale.setScalar(0.48);
+    this.inspectPin.visible = false;
+    this.scene.add(this.inspectPin);
+  }
+
+  setInspectedPoint(lon: number, lat: number) {
+    const p = this.math.pos(lon, lat, this.math.R * 1.014, new THREE.Vector3());
+    if (this.inspectPin) {
+      this.inspectPin.position.copy(p);
+      this.inspectPin.visible = true;
+    }
+    this.inspectedPoint = { lon, lat, p };
+    this.sstData.fetchExactPointAirSeries(lon, lat);
+    this.updateInspectTooltip(true);
+  }
+
+  clearInspectedPoint() {
+    if (this.inspectPin) {
+      this.inspectPin.visible = false;
+    }
+    this.inspectedPoint = null;
+    this.ngZone.run(() => {
+      this.tooltip.hide();
+    });
+  }
+
+  private updateInspectTooltip(force = false) {
+    const pt = this.inspectedPoint;
+    if (!pt) return;
+    const facing = this.facingOf(pt.p);
+    if (facing < 0.08) {
+      if (this.inspectPin) this.inspectPin.visible = false;
+      if (this.tooltip.visible()) {
+        this.ngZone.run(() => this.tooltip.hide());
+      }
+      return;
+    }
+    if (this.inspectPin) this.inspectPin.visible = true;
+
+    const [sx, sy] = this.screenOf(pt.p);
+    const month = this.state.month();
+
+    const dx = Math.abs(sx - this.lastTooltipSx);
+    const dy = Math.abs(sy - this.lastTooltipSy);
+    const dm = Math.abs(month - this.lastTooltipMonth);
+
+    if (!force && dx < 0.8 && dy < 0.8 && dm < 0.05 && this.tooltip.visible()) {
+      return;
+    }
+
+    this.lastTooltipSx = sx;
+    this.lastTooltipSy = sy;
+    this.lastTooltipFacing = facing;
+    this.lastTooltipMonth = month;
+
+    const t = this.i18n.t();
+    const isLand = this.isLand(pt.lon, pt.lat);
+
+    const waterTemp = !isLand ? this.sstData.sampleRealSst(pt.lon, pt.lat, month) : null;
+    const airTemp = this.sstData.sampleRealAir(pt.lon, pt.lat, month);
+
+    const coordsStr = t.inspectCoords(pt.lat, pt.lon);
+    const waterStr = waterTemp !== null ? `${waterTemp > 0 ? '+' : ''}${waterTemp.toFixed(1)}°C` : t.inspectNoWater;
+    const airStr = airTemp !== null ? `${airTemp > 0 ? '+' : ''}${airTemp.toFixed(1)}°C` : '–';
+
+    const waterRow = !isLand
+      ? `
+        <div class="globe-tooltip-col__row">
+          <div class="globe-tooltip-col__label-group">
+            <span class="globe-tooltip-col__icon globe-tooltip-col__icon--water">●</span>
+            <span class="globe-tooltip-col__label">${t.inspectWater}</span>
+          </div>
+          <span class="globe-tooltip-col__val">${waterStr}</span>
+        </div>
+      `
+      : '';
+
+    const html = `
+      <div class="globe-tooltip-col">
+        <div class="globe-tooltip-col__header">
+          <span class="globe-tooltip-col__coords">${coordsStr}</span>
+          <span class="globe-tooltip-col__badge">${isLand ? t.inspectLand : t.inspectOcean}</span>
+        </div>
+        <div class="globe-tooltip-col__divider"></div>
+        <div class="globe-tooltip-col__rows">
+          ${waterRow}
+          <div class="globe-tooltip-col__row">
+            <div class="globe-tooltip-col__label-group">
+              <span class="globe-tooltip-col__icon globe-tooltip-col__icon--air">●</span>
+              <span class="globe-tooltip-col__label">${t.inspectAir}</span>
+            </div>
+            <span class="globe-tooltip-col__val">${airStr}</span>
+          </div>
+        </div>
+      </div>
+    `.trim();
+
+    const textFallback = isLand
+      ? `${t.inspectAir}: ${airStr} · ${coordsStr}`
+      : `${t.inspectWater}: ${waterStr} · ${t.inspectAir}: ${airStr} · ${coordsStr}`;
+
+    this.ngZone.run(() => {
+      this.tooltip.show(textFallback, sx, sy, 'top', 0, {
+        html,
+        noWrap: true,
+        interactive: false
+      });
+    });
+  }
+
+  private facingOf(pos: THREE.Vector3): number {
+    this.toCam.copy(this.camera.position).normalize();
+    const len = Math.hypot(pos.x, pos.y, pos.z) || 1;
+    return (pos.x * this.toCam.x + pos.y * this.toCam.y + pos.z * this.toCam.z) / len;
+  }
+
+  private screenOf(pos: THREE.Vector3): [number, number] {
+    const canvas = this.canvasRef.nativeElement;
+    this.pv.copy(pos).project(this.camera);
+    return [
+      ((this.pv.x + 1) / 2) * canvas.clientWidth,
+      ((1 - this.pv.y) / 2) * canvas.clientHeight
+    ];
+  }
+
+  private pickPin(clientX: number, clientY: number, maxDistance: number): LatitudePairPin | null {
+    let bestPin: LatitudePairPin | null = null;
+    let minD = maxDistance;
+
+    for (const p of this.pins) {
+      if (this.facingOf(p.posA) > 0.12) {
+        const [sx, sy] = this.screenOf(p.posA);
+        const d = Math.hypot(sx - clientX, sy - clientY);
+        if (d < minD) {
+          minD = d;
+          bestPin = p.data;
+        }
+      }
+
+      if (this.facingOf(p.posB) > 0.12) {
+        const [sx, sy] = this.screenOf(p.posB);
+        const d = Math.hypot(sx - clientX, sy - clientY);
+        if (d < minD) {
+          minD = d;
+          bestPin = p.data;
+        }
+      }
+
+      if (this.facingOf(p.worldPos) > 0.12) {
+        const [sx, sy] = this.screenOf(p.worldPos);
+        const d = Math.hypot(sx - clientX, sy - clientY);
+        if (d < minD) {
+          minD = d;
+          bestPin = p.data;
+        }
+      }
+    }
+
+    return bestPin;
+  }
+
+  /**
+   * Directly updates DOM elements using hardware-accelerated translate3d.
+   * Completely avoids running Angular Change Detection at 60fps.
+   */
+  private updatePinsDom() {
+    const labels = this.pinLabelRefs?.toArray();
+    for (let i = 0; i < this.pins.length; i++) {
+      const p = this.pins[i];
+      const facing = this.facingOf(p.worldPos);
+      const isVisible = facing > 0.1;
+      const opacity = isVisible ? this.math.clamp((facing - 0.1) / 0.35, 0, 1) : 0;
+
+      if (labels && labels[i]) {
+        const el = labels[i].nativeElement;
+        if (!isVisible) {
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+        } else {
+          const [sx, sy] = this.screenOf(p.worldPos);
+          el.style.transform = `translate3d(${Math.round(sx)}px, ${Math.round(sy)}px, 0) translate(-50%, -120%)`;
+          el.style.opacity = `${opacity.toFixed(2)}`;
+          el.style.pointerEvents = 'auto';
+        }
+      }
+    }
+  }
+
+  private animate = (now: number) => {
+    this.animId = requestAnimationFrame(this.animate);
+
+    const dt = Math.min((now - this.lastTime) / 1000, 0.1);
+    this.lastTime = now;
+
+    // Advance seasonal timeline smoothly
+    this.state.advanceTime(dt);
+
+    const curMonth = this.state.month();
+    const curMode = this.state.sstMode();
+
+    // Throttled texture recolor: only updates when month advances meaningfully (~8 updates/sec)
+    if (
+      Math.abs(curMonth - this.lastRecolorMonth) > 0.06 ||
+      curMode !== this.lastRecolorMode
+    ) {
+      this.recolorSstTexture(curMonth, curMode);
+    }
+
+    this.controls.update();
+
+    // Fast check: only recalculate pin screen positions when camera actually moves
+    const camMoved = this.camera.position.distanceToSquared(this.lastCamPos) > 1e-5;
+    if (camMoved) {
+      this.updatePinsDom();
+      this.lastCamPos.copy(this.camera.position);
+    }
+
+    if (this.inspectedPoint) {
+      this.updateInspectTooltip();
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  };
+
+  onPointerDown(e: PointerEvent) {
+    this.downXY = [e.clientX, e.clientY];
+  }
+
+  onPointerUp(e: PointerEvent) {
+    if (!this.downXY) return;
+    const moved = Math.hypot(e.clientX - this.downXY[0], e.clientY - this.downXY[1]);
+    this.downXY = null;
+    if (moved > 6) return;
+
+    const hit = this.pickPin(e.clientX, e.clientY, 32);
+    if (hit) {
+      this.clearInspectedPoint();
+      this.ngZone.run(() => this.onPinClick(hit));
+      return;
+    }
+
+    // Inspect point on land or ocean
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    this.mouseVec.set(ndcX, ndcY);
+    this.raycaster.setFromCamera(this.mouseVec, this.camera);
+
+    const hits = this.globeMesh ? this.raycaster.intersectObject(this.globeMesh) : [];
+    if (hits.length > 0) {
+      const hitPos = hits[0].point;
+      const phi = Math.acos(this.math.clamp(hitPos.y / this.math.R, -1, 1));
+      const lat = 90 - phi * (180 / Math.PI);
+      const theta = Math.atan2(hitPos.z, -hitPos.x);
+      let lon = theta * (180 / Math.PI) - 180;
+      lon = ((lon + 180) % 360 + 360) % 360 - 180;
+
+      this.ngZone.run(() => {
+        this.setInspectedPoint(lon, lat);
+      });
+    } else {
+      this.ngZone.run(() => {
+        this.clearInspectedPoint();
+      });
+    }
+  }
+
+  onPointerMove(e: PointerEvent) {
+    if (e.buttons) return;
+    const hit = this.pickPin(e.clientX, e.clientY, 24);
+    if (hit !== this.hoverPin) {
+      this.hoverPin = hit;
+      this.canvasRef.nativeElement.style.cursor = (hit || this.inspectedPoint) ? 'pointer' : '';
+    }
+  }
+
+  onPinClick(pair: LatitudePairPin) {
+    this.state.selectPair(pair);
+    this.openPairModal(pair);
+  }
+
+  openPairModal(pair: LatitudePairPin) {
+    const t = this.i18n.t();
+    const title = this.getPairTitle(pair);
+
+    this.popup.open({
+      id: `pair-${pair.id}`,
+      title: () => title,
+      component: PairModalComponent,
+      componentInputs: { pair },
+      size: 'md',
+      actions: [
+        {
+          label: () => t.viewCrossSection,
+          variant: 'default',
+          hot: true,
+          onClick: () => {
+            this.state.setViewMode('cross-section');
+            this.popup.close();
+          }
+        },
+        { label: () => t.close, variant: 'default' }
+      ]
+    });
+  }
+
+  getPairTitle(pair: LatitudePairPin): string {
+    const t = this.i18n.t();
+    return (t as any)[pair.titleKey] || pair.id;
+  }
+
+  handleResize() {
+    if (!this.canvasRef) return;
+    const canvas = this.canvasRef.nativeElement;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (this.camera && this.renderer) {
+      this.camera.aspect = w / (h || 1);
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w, h, false);
+      this.updatePinsDom();
+    }
+  }
+}

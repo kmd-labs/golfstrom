@@ -3,3 +3,13 @@ node_modules/
 .angular/
 .DS_Store
 *.log
+
+# Docker (local use only)
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+.devcontainer/
+.dockerignore
+.env.example
+nginx.conf
+

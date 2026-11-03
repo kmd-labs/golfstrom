@@ -1,0 +1,63 @@
+@let t = i18n.t();
+@let pair = activePair();
+
+<section class="cross-section" [attr.aria-label]="t.crossSectionAria">
+  <!-- Top Floating HUD: Pair Switcher & Live Thermal Contrast -->
+  <div class="cross-section__header glass-panel">
+    <div class="cross-section__pairs" role="group" [attr.aria-label]="t.crossSectionPairSelect">
+      @for (p of pairs; track p.id) {
+        <app-button
+          variant="toggle"
+          size="sm"
+          [active]="p.id === pair.id"
+          (btnClick)="selectPair(p)">
+          {{ getPairCityName(p.cityAKey) }} ↔ {{ getPairCityName(p.cityBKey) }} ({{ p.lat.toFixed(0) }}°N)
+        </app-button>
+      }
+    </div>
+
+    <div class="cross-section__stats">
+      <div class="cross-section__stat">
+        <span class="cross-section__stat-label">{{ getPairCityName(pair.cityAKey) }}:</span>
+        <span class="cross-section__stat-val">{{ westCityTemp() > 0 ? '+' : '' }}{{ westCityTemp().toFixed(1) }}°C</span>
+      </div>
+
+      <div class="cross-section__stat cross-section__stat--gs">
+        <lucide-icon [img]="flameIcon" [size]="14"></lucide-icon>
+        <span class="cross-section__stat-label">{{ t.gulfStreamPeak }}:</span>
+        <span class="cross-section__stat-val">+{{ gulfStreamTemp().toFixed(1) }}°C</span>
+      </div>
+
+      <div class="cross-section__stat cross-section__stat--warm">
+        <span class="cross-section__stat-label">{{ getPairCityName(pair.cityBKey) }}:</span>
+        <span class="cross-section__stat-val">+{{ eastCityTemp().toFixed(1) }}°C</span>
+        <app-badge [text]="t.warmerInEurope(Math.round(Math.abs(eastCityTemp() - westCityTemp())))" backgroundColor="#d37400"></app-badge>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen 2D Canvas Stage -->
+  <div #boxRef class="cross-section__box">
+    <canvas #canvasRef id="cv"></canvas>
+
+    <!-- Floating Anchored Gulf Stream Peak Callout Window -->
+    @if (peakX() > 0) {
+      <div
+        class="cross-section__callout glass-panel"
+        [style.left.px]="peakX()"
+        [style.top.px]="peakY()">
+        <div class="cross-section__callout-header">
+          <lucide-icon [img]="flameIcon" [size]="14" class="cross-section__callout-icon"></lucide-icon>
+          <span class="cross-section__callout-title">{{ t.gulfStreamPeak }}</span>
+          <span class="cross-section__callout-badge">+{{ gulfStreamTemp().toFixed(1) }}°C</span>
+        </div>
+        <div class="cross-section__callout-anomaly">
+          <span>★ {{ t.anomLegendTitle }}: +{{ gulfStreamAnomaly().toFixed(1) }}°C</span>
+        </div>
+        <p class="cross-section__callout-desc">
+          {{ t.gulfStreamPeakDesc }}
+        </p>
+      </div>
+    }
+  </div>
+</section>

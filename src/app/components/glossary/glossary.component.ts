@@ -1,0 +1,40 @@
+import { Component, inject, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { LucideAngularModule, ExternalLink, Search } from 'lucide-angular';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { GlossaryGroup } from '../../core/i18n/i18n.types';
+
+/** Searchable glossary projected inside the Design System Popup. */
+@Component({
+  selector: 'app-glossary',
+  standalone: true,
+  imports: [CommonModule, LucideAngularModule],
+  templateUrl: './glossary.component.html',
+  styleUrl: './glossary.component.scss'
+})
+export class GlossaryComponent {
+  readonly i18n = inject(I18nService);
+
+  readonly searchIcon = Search;
+  readonly externalLinkIcon = ExternalLink;
+
+  readonly query = signal('');
+
+  readonly groups = computed<GlossaryGroup[]>(() => {
+    const all = this.i18n.t().glossaryGroups;
+    const q = this.query().trim().toLowerCase();
+    if (!q) return all;
+    return all
+      .map(g => ({
+        ...g,
+        terms: g.terms.filter(t => (t.term + ' ' + t.text).toLowerCase().includes(q))
+      }))
+      .filter(g => g.terms.length > 0);
+  });
+
+  readonly hasResults = computed(() => this.groups().length > 0);
+
+  onSearch(e: Event) {
+    this.query.set((e.target as HTMLInputElement).value);
+  }
+}
