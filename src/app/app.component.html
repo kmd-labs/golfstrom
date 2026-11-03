@@ -99,9 +99,11 @@
 
                   <div class="dock__dropdown-ticks">
                     @if (state.sstMode() === 'anomaly') {
-                      <span>{{ anomTickMin() }}</span>
-                      <span>{{ anomTickMid() }}</span>
-                      <span>{{ anomTickMax() }}</span>
+                      <span>{{ anomTickM3() }}</span>
+                      <span>{{ anomTickM15() }}</span>
+                      <span>{{ anomTick0() }}</span>
+                      <span>{{ anomTickP15() }}</span>
+                      <span>{{ anomTickP3() }}</span>
                     } @else {
                       <span>{{ sstTickMin() }}</span>
                       <span>{{ sstTickMid() }}</span>

@@ -401,12 +401,17 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
       const curAir = this.sstData.getInterpolatedAir(pair);
       const isAnomaly = mode === 'anomaly';
+      const curZm = isAnomaly ? this.sstData.getInterpolatedZm(pair) : null;
       const tex = this.texData;
+
+      // In Thermal Anomaly mode, land displays clean neutral styling (matching design system globe-no-data)
+      const landR = 226;
+      const landG = 232;
+      const landB = 240;
 
       const rowR0 = this.sstData.rowR0;
       const rowR1 = this.sstData.rowR1;
       const rowTr = this.sstData.rowTr;
-      const rowZm = this.sstData.rowZm;
 
       const colC0 = this.sstData.colC0;
       const colC1 = this.sstData.colC1;
@@ -418,7 +423,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       if (curAir) {
         for (let y = 0; y < GH; y++) {
           const rowOff = y * GW;
-          const zm = isAnomaly ? rowZm[y] : 0;
+          const zm = curZm ? curZm[y] : 0;
           const r0Off = rowR0[y] * 36;
           const r1Off = rowR1[y] * 36;
           const tr = rowTr[y];
@@ -442,8 +447,14 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
               tex[o + 1] = lut[k + 1];
               tex[o + 2] = lut[k + 2];
               tex[o + 3] = 255;
+            } else if (isAnomaly) {
+              // Land in Thermal Anomaly mode: clean neutral ground so relief overlays cleanly
+              tex[o] = landR;
+              tex[o + 1] = landG;
+              tex[o + 2] = landB;
+              tex[o + 3] = 255;
             } else {
-              // Land Surface Temperature (ERA5 reanalysis) - always enabled
+              // Land Surface Temperature (ERA5 reanalysis) in Absolute SST mode
               const c0 = colC0[x];
               const c1 = colC1[x];
               const tc = colTc[x];
@@ -456,9 +467,8 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
               const top = a0 + (a1 - a0) * tc;
               const bot = b0 + (b1 - b0) * tc;
               const airTemp = top + (bot - top) * tr;
-              const val = isAnomaly ? airTemp - zm : airTemp;
 
-              let k = ((val - lo) * sc + 0.5) | 0;
+              let k = ((airTemp - lo) * sc + 0.5) | 0;
               if (k < 0) k = 0; else if (k > 255) k = 255;
               k *= 3;
               tex[o] = lut[k];
@@ -469,46 +479,60 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
           }
         }
       } else {
-        for (let i = 0; i < this.NG; i++) {
-          const va = bin[offsetA + i];
-          const vb = bin[offsetB + i];
-          const o = i * 4;
-          if (va !== 255 && vb !== 255) {
-            const vByte = va + (vb - va) * t;
-            const sst = vByte * 0.2 - 5.0;
-            let k = ((sst - lo) * sc + 0.5) | 0;
-            if (k < 0) k = 0; else if (k > 255) k = 255;
-            k *= 3;
-            tex[o] = lut[k];
-            tex[o + 1] = lut[k + 1];
-            tex[o + 2] = lut[k + 2];
-            tex[o + 3] = 255;
-          } else {
-            tex[o] = 226;
-            tex[o + 1] = 232;
-            tex[o + 2] = 240;
+        for (let y = 0; y < GH; y++) {
+          const rowOff = y * GW;
+          const zm = curZm ? curZm[y] : 0;
+          for (let x = 0; x < GW; x++) {
+            const i = rowOff + x;
+            const va = bin[offsetA + i];
+            const vb = bin[offsetB + i];
+            const o = i * 4;
+            if (va !== 255 && vb !== 255) {
+              const vByte = va + (vb - va) * t;
+              const sst = vByte * 0.2 - 5.0;
+              const val = isAnomaly ? sst - zm : sst;
+              let k = ((val - lo) * sc + 0.5) | 0;
+              if (k < 0) k = 0; else if (k > 255) k = 255;
+              k *= 3;
+              tex[o] = lut[k];
+              tex[o + 1] = lut[k + 1];
+              tex[o + 2] = lut[k + 2];
+            } else {
+              tex[o] = landR;
+              tex[o + 1] = landG;
+              tex[o + 2] = landB;
+            }
             tex[o + 3] = 255;
           }
         }
       }
     } else {
       // Analytical fallback
+      const isAnomaly = mode === 'anomaly';
       for (let y = 0; y < this.GH; y++) {
         const lat = 90 - (y + 0.5) * (180 / this.GH);
+        const rowOff = y * this.GW;
         for (let x = 0; x < this.GW; x++) {
           const lon = (x + 0.5) * (360 / this.GW) - 180;
-          const o = (y * this.GW + x) * 4;
+          const o = (rowOff + x) * 4;
+          const isLand = this.isLand(lon, lat);
 
-          const val = mode === 'sst'
-            ? this.math.getSst(lon, lat, month)
-            : this.math.getAnomaly(lon, lat, month);
+          if (isLand && isAnomaly) {
+            this.texData[o] = 226;
+            this.texData[o + 1] = 232;
+            this.texData[o + 2] = 240;
+          } else {
+            const val = mode === 'sst'
+              ? this.math.getSst(lon, lat, month)
+              : this.math.getAnomaly(lon, lat, month);
 
-          let k = ((val - lo) * sc + 0.5) | 0;
-          if (k < 0) k = 0; else if (k > 255) k = 255;
-          k *= 3;
-          this.texData[o] = lut[k];
-          this.texData[o + 1] = lut[k + 1];
-          this.texData[o + 2] = lut[k + 2];
+            let k = ((val - lo) * sc + 0.5) | 0;
+            if (k < 0) k = 0; else if (k > 255) k = 255;
+            k *= 3;
+            this.texData[o] = lut[k];
+            this.texData[o + 1] = lut[k + 1];
+            this.texData[o + 2] = lut[k + 2];
+          }
           this.texData[o + 3] = 255;
         }
       }
@@ -919,6 +943,22 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const waterStr = waterTemp !== null ? this.i18n.formatTemp(waterTemp, 'temp', true) : t.inspectNoWater;
     const airStr = airTemp !== null ? this.i18n.formatTemp(airTemp, 'temp', true) : '–';
 
+    const isAnomaly = this.state.sstMode() === 'anomaly';
+    const anomVal = (!isLand && waterTemp !== null) ? waterTemp - this.sstData.getZonalMeanAtLat(pt.lat, month) : null;
+    const anomStr = anomVal !== null ? this.i18n.formatTemp(anomVal, 'delta', true) : '';
+
+    const anomRow = (!isLand && isAnomaly && anomVal !== null)
+      ? `
+        <div class="globe-tooltip-col__row">
+          <div class="globe-tooltip-col__label-group">
+            <span class="globe-tooltip-col__icon globe-tooltip-col__icon--water">★</span>
+            <span class="globe-tooltip-col__label">${t.anomLegendTitle}</span>
+          </div>
+          <span class="globe-tooltip-col__val">${anomStr}</span>
+        </div>
+      `
+      : '';
+
     const waterRow = !isLand
       ? `
         <div class="globe-tooltip-col__row">
@@ -939,6 +979,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
         </div>
         <div class="globe-tooltip-col__divider"></div>
         <div class="globe-tooltip-col__rows">
+          ${anomRow}
           ${waterRow}
           <div class="globe-tooltip-col__row">
             <div class="globe-tooltip-col__label-group">

@@ -346,11 +346,14 @@
     background: linear-gradient(
       to right,
       color("sst-m2"),
+      color("sst-0"),
       color("sst-5"),
       color("sst-10"),
       color("sst-15"),
       color("sst-20"),
+      color("sst-23"),
       color("sst-25-5"),
+      color("sst-27-5"),
       color("sst-29-2"),
       color("sst-31"),
       color("sst-35")
@@ -359,11 +362,11 @@
     &--anomaly {
       background: linear-gradient(
         to right,
-        color("anom-m3"),
-        color("anom-m1-5"),
-        color("anom-0"),
-        color("anom-p1-5"),
-        color("anom-p3")
+        color("anom-m3") 0%,
+        color("anom-m1-5") 25%,
+        color("anom-0") 50%,
+        color("anom-p1-5") 75%,
+        color("anom-p3") 100%
       );
     }
   }

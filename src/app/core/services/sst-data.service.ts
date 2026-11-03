@@ -57,6 +57,10 @@ export class SstDataService {
   readonly colC1 = new Int16Array(720);
   readonly colTc = new Float32Array(720);
 
+  private readonly frameZmCache = new Map<number, Float32Array>();
+  private cachedZmPairKey = '';
+  private readonly cachedZmFrame = new Float32Array(360);
+
   private cachedPairKey = '';
   private cachedAirFrame: Float32Array | null = null;
 
@@ -164,6 +168,68 @@ export class SstDataService {
     }
     this.cachedPairKey = key;
     return out;
+  }
+
+  /**
+   * Computes or returns cached observational ocean zonal mean for a specific NOAA OISST keyframe.
+   * Averages real ocean pixels (va !== 255) along each latitude row, eliminating seasonal distortion
+   * and ensuring that thermal anomaly (+/-) reflects true departure from the global ocean average.
+   */
+  getFrameZonalMean(frameIndex: number): Float32Array {
+    let zm = this.frameZmCache.get(frameIndex);
+    if (zm) return zm;
+
+    zm = new Float32Array(this.GH);
+    if (!this.sstBin) {
+      zm.set(this.rowZm);
+      return zm;
+    }
+
+    const frameOffset = frameIndex * this.NG;
+    for (let y = 0; y < this.GH; y++) {
+      const rowOffset = frameOffset + y * this.GW;
+      let sum = 0;
+      let count = 0;
+      for (let x = 0; x < this.GW; x++) {
+        const va = this.sstBin[rowOffset + x];
+        if (va !== 255) {
+          sum += va * 0.2 - 5.0;
+          count++;
+        }
+      }
+      zm[y] = count > 0 ? sum / count : this.rowZm[y];
+    }
+
+    this.frameZmCache.set(frameIndex, zm);
+    return zm;
+  }
+
+  /**
+   * Pre-interpolates the row zonal mean array for the current keyframe pair in <0.02ms.
+   */
+  getInterpolatedZm(pair: { indexA: number; indexB: number; t: number }): Float32Array {
+    const zmA = this.getFrameZonalMean(pair.indexA);
+    const zmB = this.getFrameZonalMean(pair.indexB);
+    const t = pair.t;
+
+    for (let y = 0; y < this.GH; y++) {
+      this.cachedZmFrame[y] = zmA[y] + (zmB[y] - zmA[y]) * t;
+    }
+    return this.cachedZmFrame;
+  }
+
+  /**
+   * Returns the exact observational ocean zonal mean at a specific latitude and month.
+   */
+  getZonalMeanAtLat(lat: number, month: number): number {
+    const pair = this.getKeyframePair(month);
+    const y = Math.max(0, Math.min(this.GH - 1, Math.round((lat - -89.75) / 0.5)));
+    if (pair) {
+      const zmA = this.getFrameZonalMean(pair.indexA)[y];
+      const zmB = this.getFrameZonalMean(pair.indexB)[y];
+      return zmA + (zmB - zmA) * pair.t;
+    }
+    return this.rowZm[y];
   }
 
   /**

@@ -92,11 +92,11 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     return sst !== null ? sst : this.math.lerp(pair.gsJanTemp, pair.gsJulTemp, (Math.sin((m - 3) * Math.PI / 6) + 1) / 2);
   });
 
-  // Gulf stream thermal anomaly above latitude average
+  // Gulf stream thermal anomaly above observational latitude average
   readonly gulfStreamAnomaly = computed(() => {
     const pair = this.activePair();
     const gsT = this.gulfStreamTemp();
-    const zonal = 28.5 * Math.cos(Math.abs(pair.lat) * (Math.PI / 150)) - 2.0;
+    const zonal = this.sstData.getZonalMeanAtLat(pair.lat, this.state.month());
     return Math.max(0, gsT - zonal);
   });
 
@@ -666,7 +666,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     for (let px = 0; px < ow; px++) {
       const lon = lonA + (px / (ow - 1)) * lonSpan;
-      const zm = mode === 'anomaly' ? 28.5 * Math.cos(Math.abs(pair.lat) * (Math.PI / 150)) - 2.0 : 0;
+      const zm = mode === 'anomaly' ? this.sstData.getZonalMeanAtLat(pair.lat, month) : 0;
 
       for (let py = 0; py < oh; py++) {
         const dNorm = py / (oh - 1);

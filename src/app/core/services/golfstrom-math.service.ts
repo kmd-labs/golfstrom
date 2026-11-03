@@ -1,11 +1,43 @@
 import { Injectable } from '@angular/core';
 import * as THREE from 'three';
+import { ThemeService } from '@kmd/design-system/services/theme.service';
 
 export interface LutEntry {
   lut: Uint8Array;
   lo: number;
   hi: number;
 }
+
+/** Shown range of the water temperature scale (°C). */
+export const SST_SCALE_RANGE: [number, number] = [-2, 35];
+
+/** Shown range of the temperature anomaly scale (°C). */
+export const ANOM_SCALE_RANGE: [number, number] = [-3, 3];
+
+/** Temperature Anomaly (°C vs normal) scale stops mapped to SCSS design tokens */
+export const ANOM_COLOR_TOKENS: [number, string][] = [
+  [-3.0, 'anom-m3'],
+  [-1.5, 'anom-m1-5'],
+  [0.0, 'anom-0'],
+  [1.5, 'anom-p1-5'],
+  [3.0, 'anom-p3']
+];
+
+/** Thermal (Sea Surface Temperature, °C) scale stops mapped to SCSS design tokens */
+export const THERMAL_COLOR_TOKENS: [number, string][] = [
+  [-2.0, 'sst-m2'],
+  [0.0, 'sst-0'],
+  [5.0, 'sst-5'],
+  [10.0, 'sst-10'],
+  [15.0, 'sst-15'],
+  [20.0, 'sst-20'],
+  [23.0, 'sst-23'],
+  [25.5, 'sst-25-5'],
+  [27.5, 'sst-27-5'],
+  [29.2, 'sst-29-2'],
+  [31.0, 'sst-31'],
+  [35.0, 'sst-35']
+];
 
 @Injectable({
   providedIn: 'root'
@@ -30,14 +62,43 @@ export class GolfstromMathService {
     [22.0, 71.5]   // Barents Sea opening
   ];
 
-  // Pre-built LUTs for SST and Anomaly
-  readonly lutSst: LutEntry;
-  readonly lutAnom: LutEntry;
-  readonly lutAir: LutEntry;
+  // Pre-built LUTs for SST, Anomaly and Land Air Temperature
+  lutSst!: LutEntry;
+  lutAnom!: LutEntry;
+  lutAir!: LutEntry;
 
-  constructor() {
-    this.lutSst = this.buildSstLut();
-    this.lutAnom = this.buildAnomLut();
+  constructor(private theme: ThemeService) {
+    this.refreshLutsFromTokens();
+  }
+
+  /**
+   * Rebuilds the thermal and anomaly LUTs directly from `:root` SCSS design token CSS variables,
+   * ensuring 100% color consistency between the WebGL/Canvas visualizers and the dock legends.
+   */
+  refreshLutsFromTokens(): void {
+    this.lutSst = this.buildLUT(THERMAL_COLOR_TOKENS, {
+      'sst-m2': '#829c9e',
+      'sst-0': '#7f98a2',
+      'sst-5': '#7b8ead',
+      'sst-10': '#839dbd',
+      'sst-15': '#93b1ce',
+      'sst-20': '#c1d1de',
+      'sst-23': '#dcdbc2',
+      'sst-25-5': '#edd685',
+      'sst-27-5': '#eab81f',
+      'sst-29-2': '#d37400',
+      'sst-31': '#cc3e1c',
+      'sst-35': '#a40d19'
+    });
+
+    this.lutAnom = this.buildLUT(ANOM_COLOR_TOKENS, {
+      'anom-m3': '#2563eb',
+      'anom-m1-5': '#60a5fa',
+      'anom-0': '#f5f7fb',
+      'anom-p1-5': '#e6922e',
+      'anom-p3': '#dc2626'
+    });
+
     this.lutAir = this.buildAirLut();
   }
 
@@ -137,7 +198,7 @@ export class GolfstromMathService {
   }
 
   /**
-   * Evaluates SST anomaly (°C relative to zonal mean)
+   * Evaluates SST anomaly (°C relative to zonal mean) clamped to official design system scale range [-3, 3]
    */
   getAnomaly(lon: number, lat: number, month: number): number {
     const sst = this.getSst(lon, lat, month);
@@ -146,7 +207,7 @@ export class GolfstromMathService {
     const declination = 23.44 * Math.sin(solarMonth);
     const effLat = lat - declination * 0.75;
     const baseZonal = 29.5 * Math.cos(this.clamp(Math.abs(effLat), 0, 90) * (Math.PI / 150)) - 2.5;
-    return this.clamp(sst - baseZonal, -4.0, 5.0);
+    return this.clamp(sst - baseZonal, -3.0, 3.0);
   }
 
   private distanceToPath(lon: number, lat: number): { dist: number; u: number } {
@@ -182,59 +243,45 @@ export class GolfstromMathService {
     return { dist: minDist, u: bestU };
   }
 
-  private buildSstLut(): LutEntry {
-    // Continuous thermal range spanning full global ocean and land seasons (-20°C to +35°C)
-    const lo = -20.0;
-    const hi = 35.0;
-    const lut = new Uint8Array(256 * 3);
-
-    const stops: [number, [number, number, number]][] = [
-      [-20.0, [79, 70, 229]],  // deep indigo / purple-600
-      [-12.0, [37, 99, 235]],  // cold blue / primary-600
-      [-4.0, [56, 189, 248]],  // frosty cyan / info-400
-      [0.0, [130, 156, 158]],  // cool slate / sst-m2
-      [5.0, [123, 142, 173]],  // sst-5
-      [10.0, [131, 157, 189]], // sst-10
-      [15.0, [147, 177, 206]], // sst-15
-      [20.0, [193, 209, 222]], // sst-20
-      [23.0, [220, 219, 194]], // sst-23
-      [25.5, [237, 214, 133]], // sst-25-5
-      [27.5, [234, 184, 31]],  // sst-27-5
-      [29.2, [211, 116, 0]],   // warning-500 (#d37400)
-      [31.0, [204, 62, 28]],   // sst-31
-      [35.0, [164, 13, 25]]    // sst-35
-    ];
-
-    for (let i = 0; i < 256; i++) {
-      const val = lo + (i / 255) * (hi - lo);
-      const rgb = this.interpolateStops(val, stops);
-      lut[i * 3] = rgb[0];
-      lut[i * 3 + 1] = rgb[1];
-      lut[i * 3 + 2] = rgb[2];
+  private hexToRgb(hex: string): [number, number, number] {
+    const clean = hex.replace('#', '').trim();
+    if (clean.length === 3) {
+      return [
+        parseInt(clean[0] + clean[0], 16) || 0,
+        parseInt(clean[1] + clean[1], 16) || 0,
+        parseInt(clean[2] + clean[2], 16) || 0
+      ];
     }
-
-    return { lut, lo, hi };
+    const num = parseInt(clean, 16) || 0;
+    return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
   }
 
-  private buildAnomLut(): LutEntry {
-    const lo = -3.0;
-    const hi = 3.0;
+  /**
+   * Builds a continuous 256-step lookup table dynamically reading SCSS design tokens
+   * via ThemeService (`--color-*`).
+   */
+  buildLUT(tokens: [number, string][], fallbacks: Record<string, string>): LutEntry {
+    const lo = tokens[0][0];
+    const hi = tokens[tokens.length - 1][0];
     const lut = new Uint8Array(256 * 3);
 
-    const stops: [number, [number, number, number]][] = [
-      [-3.0, [37, 99, 235]],   // primary-600
-      [-1.5, [96, 165, 250]],  // primary-400
-      [0.0, [245, 247, 251]],  // neutral-50
-      [1.5, [230, 146, 46]],   // warning-400
-      [3.0, [220, 38, 38]]     // danger-600
-    ];
+    const stops = tokens.map(([val, token]) => {
+      const hex = this.theme.getTokenColor(token, fallbacks[token] || '#000000');
+      return { val, rgb: this.hexToRgb(hex) };
+    });
 
     for (let i = 0; i < 256; i++) {
-      const val = lo + (i / 255) * (hi - lo);
-      const rgb = this.interpolateStops(val, stops);
-      lut[i * 3] = rgb[0];
-      lut[i * 3 + 1] = rgb[1];
-      lut[i * 3 + 2] = rgb[2];
+      const v = lo + (i / 255) * (hi - lo);
+      let k = 1;
+      while (k < stops.length - 1 && v > stops[k].val) {
+        k++;
+      }
+      const a = stops[k - 1];
+      const b = stops[k];
+      const t = this.clamp((v - a.val) / (b.val - a.val || 1), 0, 1);
+      lut[i * 3] = Math.round(this.lerp(a.rgb[0], b.rgb[0], t));
+      lut[i * 3 + 1] = Math.round(this.lerp(a.rgb[1], b.rgb[1], t));
+      lut[i * 3 + 2] = Math.round(this.lerp(a.rgb[2], b.rgb[2], t));
     }
 
     return { lut, lo, hi };
