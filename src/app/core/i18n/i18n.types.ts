@@ -78,6 +78,11 @@ export interface Dict {
   summary: string;
   summaryTooltip: string;
   summarySubtitle: string;
+  layers: string;
+  layersTooltip: string;
+  layerThermalScale: string;
+  scaleSstShort: string;
+  scaleAnomShort: string;
 
   // Same-latitude comparison pairs
   seasonWinter: string;

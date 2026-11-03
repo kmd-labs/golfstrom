@@ -58,6 +58,11 @@ export const EN: Dict = {
   summary: 'Summary',
   summaryTooltip: 'Transatlantic Climate Comparison Summary',
   summarySubtitle: 'Same-latitude North America vs Europe thermal contrast',
+  layers: 'Layers',
+  layersTooltip: 'Layers & temperature scale',
+  layerThermalScale: 'Ocean Temperature Scale',
+  scaleSstShort: 'Absolute SST',
+  scaleAnomShort: 'Thermal Anomaly',
 
   // Same-latitude comparison pairs
   seasonWinter: 'Winter',

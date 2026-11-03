@@ -58,6 +58,11 @@ export const PL: Dict = {
   summary: 'Podsumowanie',
   summaryTooltip: 'Podsumowanie transatlantyckiego kontrastu klimatycznego',
   summarySubtitle: 'Porównanie temperatur na tej samej szerokości w Ameryce i Europie',
+  layers: 'Warstwy',
+  layersTooltip: 'Warstwy i skala temperatury',
+  layerThermalScale: 'Skala temperatury oceanu',
+  scaleSstShort: 'Bezwzględna SST',
+  scaleAnomShort: 'Anomalia termiczna',
 
   // Same-latitude comparison pairs
   seasonWinter: 'Zima',

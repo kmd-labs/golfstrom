@@ -57,66 +57,73 @@
         </div>
 
         <div class="dock__tools-group" role="group">
-          <div
-            class="dock__legend"
-            [appTooltip]="state.sstMode() === 'anomaly' ? t.anomLegendTitle : t.sstLegendTitle">
-            <span class="dock__legend-label">
-              {{ state.sstMode() === 'anomaly' ? '-3°C' : '-20°C' }}
-            </span>
-            <div
-              class="dock__legend-bar"
-              [class.dock__legend-bar--anomaly]="state.sstMode() === 'anomaly'"></div>
-            <span class="dock__legend-label">
-              {{ state.sstMode() === 'anomaly' ? '+3°C' : '35°C' }}
-            </span>
-          </div>
+          <!-- 1. Layers & Temperature Scale Dropdown (icon-only like el-nino) -->
+          <app-dropdown
+            variant="ghost"
+            direction="up"
+            align="right"
+            class="dock__layers-dropdown"
+            [icon]="layersIcon"
+            [iconOnly]="true"
+            [appTooltip]="t.layersTooltip"
+            [ariaLabel]="t.layers">
+            <div class="dock__layers-content">
+              <div class="dock__layers-header">
+                <span class="dock__layers-title">{{ t.layerThermalScale }}</span>
+                <button
+                  type="button"
+                  class="dock__layers-toggle"
+                  (click)="state.toggleSstMode()">
+                  {{ state.sstMode() === 'anomaly' ? t.scaleAnomShort : t.scaleSstShort }}
+                </button>
+              </div>
 
-          <app-button
-            variant="toggle"
-            size="sm"
-            [active]="state.sstMode() === 'anomaly'"
-            [appTooltip]="state.sstMode() === 'anomaly' ? t.anomLegendTitle : t.sstLegendTitle"
-            (btnClick)="state.toggleSstMode()">
-            <lucide-icon [img]="thermoIcon" [size]="14"></lucide-icon>
-            @if (!bp.mobile()) {
-              <span>{{ state.sstMode() === 'anomaly' ? t.sstAnomaly : t.sstAbsolute }}</span>
-            }
-          </app-button>
+              <div
+                class="dock__dropdown-bar"
+                [class.dock__dropdown-bar--anomaly]="state.sstMode() === 'anomaly'"></div>
 
+              <div class="dock__dropdown-ticks">
+                <span>{{ state.sstMode() === 'anomaly' ? '-3°C' : '-20°C' }}</span>
+                <span>{{ state.sstMode() === 'anomaly' ? '0°C' : '+7.5°C' }}</span>
+                <span>{{ state.sstMode() === 'anomaly' ? '+3°C' : '+35°C' }}</span>
+              </div>
+            </div>
+          </app-dropdown>
+
+          <span class="dock__tools-divider" aria-hidden="true"></span>
+
+          <!-- 2. Summary Button (icon-only) -->
           <app-button
             variant="ghost"
-            size="sm"
+            [iconOnly]="true"
             [appTooltip]="t.summaryTooltip"
             [ariaLabel]="t.summary"
             (btnClick)="openSummary()">
-            <lucide-icon [img]="summaryIcon" [size]="14"></lucide-icon>
-            @if (!bp.mobile()) {
-              <span>{{ t.summary }}</span>
-            }
+            <lucide-icon [img]="summaryIcon" [size]="15"></lucide-icon>
           </app-button>
 
+          <span class="dock__tools-divider" aria-hidden="true"></span>
+
+          <!-- 3. Data Sources Button (icon-only) -->
           <app-button
             variant="ghost"
-            size="sm"
+            [iconOnly]="true"
             [appTooltip]="t.dataSourcesTitle"
             [ariaLabel]="t.dataSourcesTitle"
             (btnClick)="openSources()">
-            <lucide-icon [img]="databaseIcon" [size]="14"></lucide-icon>
-            @if (!bp.mobile()) {
-              <span>{{ t.dataSources }}</span>
-            }
+            <lucide-icon [img]="databaseIcon" [size]="15"></lucide-icon>
           </app-button>
 
+          <span class="dock__tools-divider" aria-hidden="true"></span>
+
+          <!-- 4. Glossary Button (icon-only) -->
           <app-button
             variant="ghost"
-            size="sm"
+            [iconOnly]="true"
             [appTooltip]="t.glossary"
             [ariaLabel]="t.glossary"
             (btnClick)="openGlossary()">
-            <lucide-icon [img]="bookOpenIcon" [size]="14"></lucide-icon>
-            @if (!bp.mobile()) {
-              <span>{{ t.glossary }}</span>
-            }
+            <lucide-icon [img]="bookOpenIcon" [size]="15"></lucide-icon>
           </app-button>
         </div>
       </div>
@@ -124,24 +131,12 @@
       <!-- Level 2: Weather for the 2 cities. One on the left, one on the right. -->
       <div class="dock__level dock__level--2" role="group" [attr.aria-label]="t.inspectAir">
         <div class="dock__city-card dock__city-card--west">
-          <span class="dock__city-region">{{ t.regionNorthAmerica }}</span>
-          <span class="dock__city-name">{{ activeCity1Name() }} ({{ activePair().lat.toFixed(0) }}°N)</span>
+          <span class="dock__city-name">{{ activeCity1Name() }}</span>
           <span class="dock__city-temp">{{ activeCity1TempFormatted() }}</span>
         </div>
 
-        <button
-          type="button"
-          class="dock__summary-pill"
-          [attr.aria-label]="t.summary"
-          [title]="t.summaryTooltip"
-          (click)="openSummary()">
-          <lucide-icon [img]="summaryIcon" [size]="12"></lucide-icon>
-          <span>★ Δ {{ activePairDelta() }}°C ({{ t.seasonWinter }})</span>
-        </button>
-
         <div class="dock__city-card dock__city-card--east">
-          <span class="dock__city-region">{{ t.regionEurope }}</span>
-          <span class="dock__city-name">{{ activeCity2Name() }} ({{ activePair().lat.toFixed(0) }}°N)</span>
+          <span class="dock__city-name">{{ activeCity2Name() }}</span>
           <span class="dock__city-temp">{{ activeCity2TempFormatted() }}</span>
         </div>
       </div>

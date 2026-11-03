@@ -10,7 +10,8 @@ import {
   Thermometer,
   Gauge,
   Database,
-  FileText
+  FileText,
+  Layers
 } from 'lucide-angular';
 import {
   ButtonComponent,
@@ -77,6 +78,7 @@ export class AppComponent implements OnInit {
   readonly speedIcon = Gauge;
   readonly databaseIcon = Database;
   readonly summaryIcon = FileText;
+  readonly layersIcon = Layers;
 
   readonly isPopupOpen = computed(() => this.popup.config() !== null);
 
