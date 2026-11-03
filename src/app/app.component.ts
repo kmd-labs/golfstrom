@@ -14,6 +14,7 @@ import {
 } from 'lucide-angular';
 import {
   ButtonComponent,
+  BrandComponent,
   DropdownComponent,
   DropdownOption,
   PopupComponent,
@@ -44,6 +45,7 @@ import { SstDataService } from './core/services/sst-data.service';
   imports: [
     CommonModule,
     LucideAngularModule,
+    BrandComponent,
     ButtonComponent,
     DropdownComponent,
     PopupComponent,

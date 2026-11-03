@@ -39,64 +39,6 @@
     pointer-events: auto;
   }
 
-  &__brand {
-    display: inline-flex;
-    align-items: center;
-    height: 42px;
-    padding: 4px;
-    border-radius: radius("pill");
-    cursor: pointer;
-    user-select: none;
-    transition: background transition("fast"), border-color transition("fast");
-
-    &:hover &__brand-btn {
-      background: color("btn-hover");
-    }
-  }
-
-  &__brand-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    height: 34px;
-    padding: 0 10px;
-    border-radius: radius("pill");
-    border: 0;
-    background: transparent;
-    font: inherit;
-    cursor: pointer;
-    transition: background transition("fast");
-
-    &:hover {
-      background: color("btn-hover");
-    }
-  }
-
-  &__logo {
-    display: inline-flex;
-    align-items: center;
-  }
-
-  &__logo-img {
-    height: 16px;
-    width: auto;
-    display: block;
-    user-select: none;
-  }
-
-  &__divider {
-    width: 1px;
-    height: 16px;
-    background: color("line-strong");
-  }
-
-  &__app-name {
-    margin: 0;
-    font-size: font-size("xs");
-    font-weight: font-weight("medium");
-    color: color("text-dim");
-  }
-
   &__settings,
   &__view {
     display: inline-flex;
@@ -173,15 +115,21 @@
     &--1 {
       justify-content: space-between;
       gap: 12px;
+      padding-bottom: 2px;
     }
 
     &--2 {
       justify-content: space-between;
       gap: 12px;
+      padding-top: 8px;
+      padding-bottom: 2px;
+      border-top: 1px solid color("line");
     }
 
     &--3 {
       justify-content: stretch;
+      padding-top: 8px;
+      border-top: 1px solid color("line");
     }
   }
 
@@ -457,6 +405,14 @@
 
     &__level--1 {
       gap: 6px;
+    }
+
+    &__level--2 {
+      padding-top: 6px;
+    }
+
+    &__level--3 {
+      padding-top: 6px;
     }
   }
 }
