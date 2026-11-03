@@ -10,12 +10,9 @@ import {
   signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, ChevronLeft, ChevronRight, Wind, Flame } from 'lucide-angular';
+import { LucideAngularModule, Wind, Flame } from 'lucide-angular';
 import { ThemeService } from '@kmd/design-system/services/theme.service';
-import { ButtonComponent } from '@kmd/design-system/ui/button/button.component';
 import { BadgeComponent } from '@kmd/design-system/ui/badge/badge.component';
-import { DropdownComponent } from '@kmd/design-system/ui/dropdown/dropdown.component';
-import { DropdownOption } from '@kmd/design-system/ui/dropdown/dropdown.model';
 import { BreakpointService } from '@kmd/design-system';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { GolfstromStateService } from '../../core/services/golfstrom-state.service';
@@ -47,9 +44,7 @@ export interface CrossSectionHover {
   imports: [
     CommonModule,
     LucideAngularModule,
-    ButtonComponent,
-    BadgeComponent,
-    DropdownComponent
+    BadgeComponent
   ],
   templateUrl: './cross-section-view.component.html',
   styleUrl: './cross-section-view.component.scss'
@@ -70,24 +65,9 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
   readonly pairs = LATITUDE_PAIRS;
   readonly windIcon = Wind;
   readonly flameIcon = Flame;
-  readonly chevronLeft = ChevronLeft;
-  readonly chevronRight = ChevronRight;
 
   // Active pair details
   readonly activePair = computed(() => this.state.selectedPair());
-
-  readonly pairOptions = computed<DropdownOption<string>[]>(() => {
-    const t = this.i18n.t();
-    return this.pairs.map(p => {
-      const cityA = (t as any)[p.cityAKey] || p.cityAKey;
-      const cityB = (t as any)[p.cityBKey] || p.cityBKey;
-      return {
-        value: p.id,
-        label: `${p.lat.toFixed(0)}°N: ${cityA} ↔ ${cityB}`,
-        badge: `${p.lat.toFixed(0)}°N`
-      };
-    });
-  });
 
   // West city live temperature
   readonly westCityTemp = computed(() => {
@@ -178,13 +158,6 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  selectPair(pair: LatitudePairPin) {
-    this.state.selectPair(pair);
-  }
-
-  selectPairById(id: string) {
-    this.state.selectPairById(id);
-  }
 
   getPairCityName(key: string): string {
     const t = this.i18n.t();

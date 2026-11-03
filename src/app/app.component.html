@@ -57,30 +57,18 @@
     <app-cross-section-view [class.is-hidden]="state.viewMode() !== 'cross-section'"></app-cross-section-view>
   </section>
 
-  <!-- Bottom Dock: Matches el-nino layout with Months at top and playback controls, active in both views -->
+  <!-- Bottom Dock: 3 levels (1: date, thermal anomaly selector, glossary & data attribution; 2: weather for 2 cities left/right; 3: timeline) -->
   <footer class="dock-wrap">
     <div class="dock glass-panel">
-      <!-- Top Row: Status (active month pill, mode badge) + Readouts (Legend, Mode toggle, Glossary) -->
-      <div class="dock__top">
+      <!-- Level 1: Date on left; Anomaly Selector, Legend, Data Attribution & Glossary on right -->
+      <div class="dock__level dock__level--1">
         <div class="dock__status-group" role="group">
           <div class="dock__date-pill" role="status" [appTooltip]="currentMonthName()">
             <span class="dock__date-val">{{ currentDateLabel() }}</span>
           </div>
-
-          <div class="dock__city-temps" role="status" [attr.aria-label]="t.inspectAir">
-            <div class="dock__city-entry">
-              <span class="dock__city-name">{{ activeCity1Name() }}</span>
-              <span class="dock__city-temp">{{ activeCity1TempFormatted() }}</span>
-            </div>
-            <span class="dock__city-divider" aria-hidden="true"></span>
-            <div class="dock__city-entry">
-              <span class="dock__city-name">{{ activeCity2Name() }}</span>
-              <span class="dock__city-temp">{{ activeCity2TempFormatted() }}</span>
-            </div>
-          </div>
         </div>
 
-        <div class="dock__readout-group" role="group">
+        <div class="dock__tools-group" role="group">
           <div
             class="dock__legend"
             [appTooltip]="state.sstMode() === 'anomaly' ? t.anomLegendTitle : t.sstLegendTitle">
@@ -107,7 +95,24 @@
             }
           </app-button>
 
-          <app-button variant="ghost" size="sm" (btnClick)="openGlossary()" [appTooltip]="t.glossary">
+          <app-button
+            variant="ghost"
+            size="sm"
+            [appTooltip]="t.dataSourcesTitle"
+            [ariaLabel]="t.dataSourcesTitle"
+            (btnClick)="openSources()">
+            <lucide-icon [img]="databaseIcon" [size]="14"></lucide-icon>
+            @if (!bp.mobile()) {
+              <span>{{ t.dataSources }}</span>
+            }
+          </app-button>
+
+          <app-button
+            variant="ghost"
+            size="sm"
+            [appTooltip]="t.glossary"
+            [ariaLabel]="t.glossary"
+            (btnClick)="openGlossary()">
             <lucide-icon [img]="bookOpenIcon" [size]="14"></lucide-icon>
             @if (!bp.mobile()) {
               <span>{{ t.glossary }}</span>
@@ -116,8 +121,23 @@
         </div>
       </div>
 
-      <!-- Row 2: Full width Timeline slider with play action -->
-      <div class="dock__row">
+      <!-- Level 2: Weather for the 2 cities. One on the left, one on the right. -->
+      <div class="dock__level dock__level--2" role="group" [attr.aria-label]="t.inspectAir">
+        <div class="dock__city-card dock__city-card--west">
+          <span class="dock__city-region">{{ t.regionNorthAmerica }}</span>
+          <span class="dock__city-name">{{ activeCity1Name() }} ({{ activePair().lat.toFixed(0) }}°N)</span>
+          <span class="dock__city-temp">{{ activeCity1TempFormatted() }}</span>
+        </div>
+
+        <div class="dock__city-card dock__city-card--east">
+          <span class="dock__city-region">{{ t.regionEurope }}</span>
+          <span class="dock__city-name">{{ activeCity2Name() }} ({{ activePair().lat.toFixed(0) }}°N)</span>
+          <span class="dock__city-temp">{{ activeCity2TempFormatted() }}</span>
+        </div>
+      </div>
+
+      <!-- Level 3: Timeline full width with playback controls -->
+      <div class="dock__level dock__level--3">
         <div class="dock__slider">
           <app-timeline-slider
             [min]="0"

@@ -228,5 +228,86 @@ export const EN: Dict = {
         }
       ]
     }
-  ]
+  ],
+
+  // Data Sources & Attribution
+  dataSources: 'Data',
+  dataSourcesTitle: 'Data Sources & Attribution',
+  dataSourcesSubtitle: 'Datasets, measurement standards, and scientific methodology',
+  sourcesTitle: 'Data Sources & Licences',
+  sourcesList: [
+    {
+      name: 'NOAA OISST v2.1',
+      url: 'https://www.ncei.noaa.gov/products/optimum-interpolation-sst',
+      license: 'Public Domain (US Gov)',
+      desc: 'High-resolution daily sea surface temperature analysis (0.5° grid) produced from infrared/microwave satellite radiometers, drifting buoys, and research vessels.',
+      products: [
+        { name: 'Daily OISST v2.1 AVHRR-only NetCDF files – sea temperature and anomaly', url: 'https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/' },
+        { name: 'Dataset record and citation (DOI 10.25921/RE9P-PT57)', url: 'https://doi.org/10.25921/RE9P-PT57' },
+        { name: 'Huang et al. (2021) – Improvements of the Daily OISST Version 2.1, Journal of Climate', url: 'https://doi.org/10.1175/JCLI-D-20-0166.1' }
+      ]
+    },
+    {
+      name: 'Open-Meteo & ECMWF Reanalysis',
+      url: 'https://open-meteo.com/',
+      license: 'CC BY 4.0',
+      desc: 'Global weather reanalysis and forecast models (ECMWF IFS, DWD ICON, NOAA GFS), providing 2 m air temperature, 10 m surface wind velocity, and ocean waves.',
+      products: [
+        { name: 'Open-Meteo Weather API (CC BY 4.0)', url: 'https://open-meteo.com/en/docs' },
+        { name: 'ECMWF ERA5 Atmospheric Reanalysis', url: 'https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5' }
+      ]
+    },
+    {
+      name: 'GEBCO & Copernicus Marine Service',
+      url: 'https://www.gebco.net/',
+      license: 'Public Domain / Open Data',
+      desc: 'General Bathymetric Chart of the Oceans providing global transatlantic terrain elevation, ocean trench depth, continental shelves, and Mid-Atlantic Ridge bathymetry.',
+      products: [
+        { name: 'GEBCO One Minute Grid & High-Resolution Bathymetry', url: 'https://www.gebco.net/data_and_products/gridded_bathymetry_data/' },
+        { name: 'Copernicus Marine Environment Monitoring Service (CMEMS)', url: 'https://marine.copernicus.eu/' }
+      ]
+    },
+    {
+      name: 'NASA POWER (MERRA-2)',
+      url: 'https://power.larc.nasa.gov/',
+      license: 'Open Access / NASA',
+      desc: 'NASA Prediction of Worldwide Energy Resources, supplying continuous daily solar and meteorological parameters for surface climate studies.'
+    }
+  ],
+  methodology: {
+    title: 'Data & Methodology',
+    subtitle: 'How temperatures, bathymetry, and transatlantic anomalies are computed',
+    items: [
+      {
+        label: 'Water Temperature (SST)',
+        area: 'Atlantic Basin & Global Ocean (89.75°S–89.75°N, 179.75°W–179.75°E) · 0.5° × 0.5° grid',
+        text: 'Produced from NOAA OISST v2.1 combining daily satellite radiometer data, drifting buoys, and research vessels with two-pass coastal dilation. Each point samples the local 0.5° cell smoothly interpolated along the timeline date.'
+      },
+      {
+        label: 'Transatlantic Air Temperature (2 m)',
+        area: 'North America & Europe Continental Boundary Nodes · 10° × 10° grid',
+        text: 'Modeled near-surface air temperature at 2 meters altitude. City pair temperatures are sampled at exact coordinates using bilinear grid node interpolation coupled with seasonal solar cycle regression.'
+      },
+      {
+        label: 'Thermal Cross-Section & Bathymetry',
+        area: 'Hermite-Spline Transatlantic Transects (New York–Porto, St. Johns–Brest, Baffin–Bodø, Hatteras–Lisbon)',
+        text: 'High-resolution 180-node Hermite-interpolated depth profiles across the Atlantic basin down to 5,500 m, incorporating continental shelves, the Mid-Atlantic Ridge, and island volcanic peaks (Azores, Bermuda, Jan Mayen).'
+      },
+      {
+        label: 'Gulf Stream Core Simulation',
+        area: 'Western Boundary Current & Isotherm Contours',
+        text: 'Simulates the steep western boundary baroclinic temperature front (Cold Wall) with a 22–27°C surface core and deep lens structure down to 1,000 m depth, illustrating the ~1 petawatt heat engine moderating western Europe.'
+      }
+    ]
+  },
+  built: {
+    title: 'How we built it',
+    rows: [
+      { label: 'Technology', text: 'Angular and Three.js (WebGL globe) with an interactive 2D canvas transatlantic cross-section. Zero backend: static deployment on GitHub Pages with daily rolling data updates via GitHub Actions.' },
+      { label: 'Data', text: 'NOAA OISST v2.1 sea temperatures, Open-Meteo & ERA5 atmospheric reanalysis, GEBCO transatlantic bathymetry, and NASA POWER meteorological data.' },
+      { label: 'Display Optimization', text: 'Hardware-accelerated lookup tables and typed array texture mapping running at 60 fps with tabular non-jumping typography.' },
+      { label: 'Observatory', text: 'Created by KMD Labs (EUSPA 11th CASSINI Hackathon EU Winners).' }
+    ],
+    teamLink: 'Meet the team'
+  }
 };

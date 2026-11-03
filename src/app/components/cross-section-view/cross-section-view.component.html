@@ -2,55 +2,8 @@
 @let pair = activePair();
 
 <section class="cross-section" [attr.aria-label]="t.crossSectionAria">
-  <!-- Top Floating HUD: Pair Switcher & Live Thermal Contrast -->
+  <!-- Top Floating HUD: Live Transatlantic Thermal Contrast -->
   <div class="cross-section__header glass-panel">
-    <div class="cross-section__transect-nav" role="group" [attr.aria-label]="t.crossSectionPairSelect">
-      <button
-        type="button"
-        class="cross-section__nav-btn"
-        [attr.aria-label]="t.prevTransect"
-        [title]="t.prevTransect"
-        (click)="state.prevPair()">
-        <lucide-icon [img]="chevronLeft" [size]="16"></lucide-icon>
-      </button>
-
-      <!-- Dropdown on compact screens / Tablet / Mobile -->
-      @if (bp.tablet()) {
-        <app-dropdown
-          variant="default"
-          size="sm"
-          [options]="pairOptions()"
-          [value]="pair.id"
-          [ariaLabel]="t.crossSectionPairSelect"
-          (valueChange)="selectPairById($event)">
-        </app-dropdown>
-      } @else {
-        <!-- Segmented Toggle Pills on Desktop -->
-        <div class="cross-section__pairs">
-          @for (p of pairs; track p.id) {
-            <app-button
-              variant="toggle"
-              size="sm"
-              [active]="p.id === pair.id"
-              (btnClick)="selectPair(p)">
-              <span class="cross-section__pair-lat">{{ p.lat.toFixed(0) }}°N:</span>
-              <span class="cross-section__pair-name">{{ getPairCityName(p.cityAKey) }} ↔ {{ getPairCityName(p.cityBKey) }}</span>
-            </app-button>
-          }
-        </div>
-      }
-
-      <button
-        type="button"
-        class="cross-section__nav-btn"
-        [attr.aria-label]="t.nextTransect"
-        [title]="t.nextTransect"
-        (click)="state.nextPair()">
-        <lucide-icon [img]="chevronRight" [size]="16"></lucide-icon>
-      </button>
-    </div>
-
-    <!-- Live Transatlantic Temperature Readout -->
     <div class="cross-section__stats">
       <div class="cross-section__stat">
         <span class="cross-section__stat-label">{{ getPairCityName(pair.cityAKey) }}:</span>

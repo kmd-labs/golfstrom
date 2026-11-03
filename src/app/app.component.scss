@@ -160,18 +160,29 @@
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   padding: 10px 16px 12px;
   width: min(780px, calc(100vw - 32px));
   @include glass-panel;
 
-  &__top {
+  &__level {
+    width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
-    flex-wrap: nowrap;
+
+    &--1 {
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    &--2 {
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    &--3 {
+      justify-content: stretch;
+    }
   }
 
   &__status-group {
@@ -185,7 +196,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 24px;
+    height: 26px;
     padding: 0 10px;
     border-radius: radius("pill");
     background: color("btn-bg");
@@ -202,65 +213,10 @@
     text-align: center;
   }
 
-  &__city-temps {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 24px;
-    padding: 0 10px;
-    border-radius: radius("pill");
-    background: color("btn-bg");
-    border: 1px solid color("line");
-    font-size: font-size("xs");
-    line-height: 1;
-    flex-shrink: 0;
-    white-space: nowrap;
-
-    @include respond-to("mobile") {
-      gap: 5px;
-      padding: 0 6px;
-      font-size: font-size("xxs");
-    }
-  }
-
-  &__city-entry {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  &__city-name {
-    font-weight: font-weight("semibold");
-    color: color("text-bright");
-    white-space: nowrap;
-  }
-
-  &__city-temp {
-    font-family: $font-family-mono;
-    font-variant-numeric: tabular-nums;
-    font-weight: font-weight("bold");
-    color: #2563eb;
-    display: inline-block;
-    min-width: 52px;
-    text-align: right;
-    white-space: nowrap;
-
-    @include respond-to("mobile") {
-      min-width: 44px;
-    }
-  }
-
-  &__city-divider {
-    width: 1px;
-    height: 12px;
-    background: color("line");
-    flex-shrink: 0;
-  }
-
-  &__readout-group {
+  &__tools-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: nowrap;
   }
 
@@ -269,14 +225,15 @@
     align-items: center;
     gap: 6px;
     cursor: default;
+    margin-right: 4px;
 
-    @include respond-to("mobile") {
+    @include respond-to("tablet") {
       display: none;
     }
   }
 
   &__legend-bar {
-    width: 90px;
+    width: 80px;
     height: 7px;
     border-radius: radius("control");
     border: 1px solid color("line-strong");
@@ -314,7 +271,76 @@
     white-space: nowrap;
   }
 
-  &__row {
+  // Level 2: Weather for 2 cities (West on left, East on right)
+  &__weather-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+  }
+
+  &__city-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: radius("pill");
+    background: color("btn-bg");
+    border: 1px solid color("line");
+    font-size: font-size("xs");
+    line-height: 1;
+    white-space: nowrap;
+
+    &--west {
+      margin-right: auto;
+    }
+
+    &--east {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    @include respond-to("mobile") {
+      gap: 5px;
+      padding: 0 7px;
+      font-size: font-size("xxs");
+    }
+  }
+
+  &__city-region {
+    font-size: font-size("xxs");
+    font-weight: font-weight("bold");
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: color("text-dim");
+    line-height: 1;
+  }
+
+  &__city-name {
+    font-weight: font-weight("semibold");
+    color: color("text-bright");
+    line-height: 1;
+  }
+
+  &__city-temp {
+    font-family: $font-family-mono;
+    font-variant-numeric: tabular-nums;
+    font-weight: font-weight("bold");
+    color: #2563eb;
+    display: inline-block;
+    min-width: 52px;
+    text-align: right;
+    line-height: 1;
+
+    @include respond-to("mobile") {
+      min-width: 44px;
+    }
+  }
+
+  // Level 3: Timeline slider
+  &__timeline-row {
     width: 100%;
     display: flex;
   }
@@ -397,7 +423,7 @@
     padding: 8px 12px;
     gap: 6px;
 
-    &__top {
+    &__level--1 {
       gap: 6px;
     }
   }

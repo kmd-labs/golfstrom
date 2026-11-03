@@ -228,5 +228,86 @@ export const PL: Dict = {
         }
       ]
     }
-  ]
+  ],
+
+  // Data Sources & Attribution
+  dataSources: 'Dane',
+  dataSourcesTitle: 'Źródła danych i atrybucja',
+  dataSourcesSubtitle: 'Zbiory danych, standardy pomiarowe i metodologia naukowa',
+  sourcesTitle: 'Źródła danych i licencje',
+  sourcesList: [
+    {
+      name: 'NOAA OISST v2.1',
+      url: 'https://www.ncei.noaa.gov/products/optimum-interpolation-sst',
+      license: 'Domena publiczna (US Gov)',
+      desc: 'Dobowa siatka 0,5° temperatury powierzchni oceanu opracowywana na podstawie radiometrów satelitarnych, boi dryfujących i statków badawczych.',
+      products: [
+        { name: 'Dzienne pliki OISST v2.1 AVHRR-only NetCDF – temperatura morza i anomalie', url: 'https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/' },
+        { name: 'Opis zbioru danych i sposób cytowania (DOI 10.25921/RE9P-PT57)', url: 'https://doi.org/10.25921/RE9P-PT57' },
+        { name: 'Huang i in. (2021) – Ulepszenia dziennego OISST w wersji 2.1, Journal of Climate', url: 'https://doi.org/10.1175/JCLI-D-20-0166.1' }
+      ]
+    },
+    {
+      name: 'Open-Meteo i reanalizy ECMWF',
+      url: 'https://open-meteo.com/',
+      license: 'CC BY 4.0',
+      desc: 'Globalne modele prognoz i reanaliz meteorologicznych (ECMWF IFS, DWD ICON, NOAA GFS) dostarczające temperaturę powietrza 2 m, wiatr przyziemny 10 m oraz fale morskie.',
+      products: [
+        { name: 'API pogodowe Open-Meteo (CC BY 4.0)', url: 'https://open-meteo.com/en/docs' },
+        { name: 'Atmosferyczna reanaliza ECMWF ERA5', url: 'https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5' }
+      ]
+    },
+    {
+      name: 'GEBCO i Copernicus Marine Service',
+      url: 'https://www.gebco.net/',
+      license: 'Domena publiczna / Open Data',
+      desc: 'General Bathymetric Chart of the Oceans – globalne ukształtowanie dna oceanicznego, szelfy kontynentalne, baseny głębinowe oraz Grzbiet Śródatlantycki.',
+      products: [
+        { name: 'Siatka batymetryczna GEBCO One Minute Grid', url: 'https://www.gebco.net/data_and_products/gridded_bathymetry_data/' },
+        { name: 'Usługa monitorowania środowiska morskiego Copernicus (CMEMS)', url: 'https://marine.copernicus.eu/' }
+      ]
+    },
+    {
+      name: 'NASA POWER (MERRA-2)',
+      url: 'https://power.larc.nasa.gov/',
+      license: 'Open Access / NASA',
+      desc: 'Program NASA POWER dostarczający dobowe pomiary meteorologiczne i promieniowania słonecznego do badań dynamiki klimatycznej powierzchni Ziemi.'
+    }
+  ],
+  methodology: {
+    title: 'Dane i metodologia',
+    subtitle: 'Jak obliczane są temperatury, batymetria i transatlantycki kontrast termiczny',
+    items: [
+      {
+        label: 'Temperatura wody (SST)',
+        area: 'Basen Atlantyku i globalny ocean (89,75°S–89,75°N, 179,75°W–179,75°E) · siatka 0,5° × 0,5°',
+        text: 'Generowana na podstawie analizy NOAA OISST v2.1 łączącej codzienne pomiary satelitarne, boje i statki z 2-krotną dylatacją brzegową. Każdy punkt na globie próbkuje lokalną komórkę 0,5° płynnie interpolowaną wzdłuż osi czasu.'
+      },
+      {
+        label: 'Temperatura powietrza (2 m)',
+        area: 'Ameryka Północna i Europa · siatka 10° × 10°',
+        text: 'Modelowana temperatura powietrza na wysokości 2 metrów nad gruntem. Wartości dla miast są próbkowane w dokładnych współrzędnych geograficznych z wykorzystaniem biliniowej interpolacji węzłów siatki i sezonowej fali słonecznej.'
+      },
+      {
+        label: 'Przekrój termiczny i batymetria',
+        area: 'Transatlantyckie profile z interpolacją Hermite’a (Nowy Jork–Porto, St. John’s–Brest, Baffin–Bodø, Hatteras–Lizbona)',
+        text: 'Gęste, 180-węzłowe profile głębokościowe sięgające 5500 m p.p.m., odzwierciedlające szelfy kontynentalne, Grzbiet Śródatlantycki oraz wyniesienia wysp oceanicznych (Azory, Bermudy, Jan Mayen).'
+      },
+      {
+        label: 'Rdzeń Golfsztromu i front baroklinowy',
+        area: 'Zachodni prąd brzegowy i izotermy',
+        text: 'Modelowanie stromego zachodniego frontu termicznego (Zimna Ściana) z ciepłym rdzeniem 22–27°C sięgającym 1000 m w głąb oceanu, obrazujące potężny transfer ciepła (~1 petawat) ogrzewający Europę Zachodnią.'
+      }
+    ]
+  },
+  built: {
+    title: 'Jak to zrobiliśmy',
+    rows: [
+      { label: 'Technologia', text: 'Angular i Three.js (globus WebGL) oraz interaktywny przekrój transatlantycki na płótnie canvas. Brak backendu: statyczna witryna na GitHub Pages z codzienną rotacyjną aktualizacją danych przez GitHub Actions.' },
+      { label: 'Dane', text: 'Pomiary temperatur oceanu NOAA OISST v2.1, reanalizy atmosferyczne Open-Meteo i ERA5, batymetria GEBCO oraz dane klimatyczne NASA POWER.' },
+      { label: 'Wydajność', text: 'Sprzętowo optymalizowane tablice przeglądowe (LUT) i cieniowanie 60 fps z monotypografią o stałej szerokości bez skakania pikseli.' },
+      { label: 'Obserwatorium', text: 'Stworzone przez KMD Labs (zwycięzcy 11. CASSINI Hackathon UE organizowanego przez EUSPA).' }
+    ],
+    teamLink: 'Poznaj zespół'
+  }
 };

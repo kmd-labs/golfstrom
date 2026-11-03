@@ -12,6 +12,36 @@ export interface GlossaryGroup {
   terms: GlossaryTerm[];
 }
 
+export interface SourceProduct {
+  name: string;
+  url: string;
+}
+
+export interface SourceItem {
+  name: string;
+  url: string;
+  license: string;
+  desc: string;
+  products?: SourceProduct[];
+}
+
+export interface MethodologyItem {
+  label: string;
+  area: string;
+  text: string;
+}
+
+export interface BuiltRow {
+  label: string;
+  text: string;
+}
+
+export interface BuiltSection {
+  title: string;
+  rows: BuiltRow[];
+  teamLink: string;
+}
+
 /**
  * Every user-facing text of the application in one language.
  * Add new translation keys here first so TypeScript enforces parity across en.ts and pl.ts.
@@ -119,4 +149,17 @@ export interface Dict {
   wikiIn: Record<Lang, string>;
   glossaryGroups: GlossaryGroup[];
   close: string;
+
+  // Data Sources & Attribution
+  dataSources: string;
+  dataSourcesTitle: string;
+  dataSourcesSubtitle: string;
+  sourcesTitle: string;
+  sourcesList: SourceItem[];
+  methodology: {
+    title: string;
+    subtitle: string;
+    items: MethodologyItem[];
+  };
+  built: BuiltSection;
 }

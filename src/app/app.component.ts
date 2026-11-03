@@ -8,7 +8,8 @@ import {
   Play,
   Pause,
   Thermometer,
-  Gauge
+  Gauge,
+  Database
 } from 'lucide-angular';
 import {
   ButtonComponent,
@@ -30,6 +31,7 @@ import { GolfstromStateService } from './core/services/golfstrom-state.service';
 import { GlobeComponent } from './components/globe/globe.component';
 import { CrossSectionViewComponent } from './components/cross-section-view/cross-section-view.component';
 import { GlossaryComponent } from './components/glossary/glossary.component';
+import { SourcesPopupComponent } from './components/sources-popup/sources-popup.component';
 import { ViewMode } from './core/models/golfstrom.model';
 import { LATITUDE_PAIRS, PLAYBACK_SPEEDS } from './core/constants/golfstrom-data';
 import { SstDataService } from './core/services/sst-data.service';
@@ -69,6 +71,7 @@ export class AppComponent implements OnInit {
   readonly pauseIcon = Pause;
   readonly thermoIcon = Thermometer;
   readonly speedIcon = Gauge;
+  readonly databaseIcon = Database;
 
   readonly isPopupOpen = computed(() => this.popup.config() !== null);
 
@@ -109,6 +112,8 @@ export class AppComponent implements OnInit {
     const year = d.getUTCFullYear();
     return `${day} ${month} ${year}`;
   });
+
+  readonly activePair = computed(() => this.state.selectedPair());
 
   readonly activeCity1Name = computed(() => {
     const p = this.state.selectedPair();
@@ -215,6 +220,22 @@ export class AppComponent implements OnInit {
       title: computed(() => this.i18n.t().glTitle),
       subtitle: computed(() => this.i18n.t().glSubtitle),
       component: GlossaryComponent,
+      size: 'lg',
+      actions: [
+        {
+          label: computed(() => this.i18n.t().close),
+          variant: 'default'
+        }
+      ]
+    });
+  }
+
+  openSources() {
+    this.popup.open({
+      id: 'sources',
+      title: computed(() => this.i18n.t().dataSourcesTitle),
+      subtitle: computed(() => this.i18n.t().dataSourcesSubtitle),
+      component: SourcesPopupComponent,
       size: 'lg',
       actions: [
         {

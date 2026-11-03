@@ -29,86 +29,16 @@
     z-index: 10;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: spacing("md");
-    padding: 8px 16px;
-    width: min(920px, calc(100vw - 32px));
+    justify-content: center;
+    padding: 8px 18px;
+    width: fit-content;
+    max-width: calc(100vw - 32px);
     @include glass-panel;
-
-    @include respond-to("tablet") {
-      flex-direction: column;
-      align-items: stretch;
-      gap: spacing("xs");
-      padding: 8px 12px;
-    }
 
     @include respond-to("mobile") {
       top: calc(12px + #{$control-height} + 6px);
-      gap: 6px;
-      padding: 6px 10px;
+      padding: 6px 12px;
     }
-  }
-
-  &__transect-nav {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  &__nav-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: 1px solid color("line");
-    border-radius: radius("pill");
-    background: color("panel-bg-heavy");
-    color: color("text-bright");
-    cursor: pointer;
-    transition: all transition("fast");
-
-    &:hover {
-      background: color("neutral-200");
-      border-color: color("accent");
-      color: color("accent");
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
-  }
-
-  &__pairs {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    overflow-x: auto;
-    @include custom-scrollbar;
-
-    ::ng-deep {
-      .btn--active,
-      button[aria-pressed="true"] {
-        border-color: #2563eb !important;
-        background: rgba(37, 99, 235, 0.08) !important;
-        color: #1d4ed8 !important;
-
-        .cross-section__pair-lat {
-          color: #2563eb !important;
-        }
-      }
-    }
-  }
-
-  &__pair-lat {
-    font-weight: font-weight("bold");
-    color: color("accent");
-    margin-right: 4px;
-  }
-
-  &__pair-name {
-    font-weight: font-weight("medium");
   }
 
   &__stats {
