@@ -1,0 +1,39 @@
+@let t = i18n.t();
+<div class="gl">
+  <div class="gl__search-wrap">
+    <lucide-icon class="gl__search-icon" [img]="searchIcon" [size]="15"></lucide-icon>
+    <input
+      class="gl__search"
+      type="search"
+      [placeholder]="t.glSearch"
+      [attr.aria-label]="t.glSearchAria"
+      [value]="query()"
+      (input)="onSearch($event)" />
+  </div>
+
+  <div class="gl__body">
+    @for (g of groups(); track g.title) {
+      <section class="gl__group">
+        <h3 class="gl__gtitle">{{ g.title }}</h3>
+        <dl>
+          @for (term of g.terms; track term.term) {
+            <div class="gl__item">
+              <dt>{{ term.term }}</dt>
+              <dd>
+                <span>{{ term.text }}</span>
+                <a class="gl__wiki" [href]="term.wiki" target="_blank" rel="noopener noreferrer">
+                  <span>Wikipedia{{ t.wikiIn[term.wikiLang] }}</span>
+                  <lucide-icon [img]="externalLinkIcon" [size]="12"></lucide-icon>
+                </a>
+              </dd>
+            </div>
+          }
+        </dl>
+      </section>
+    }
+
+    @if (!hasResults()) {
+      <p class="gl__empty">{{ t.glEmpty(query()) }}</p>
+    }
+  </div>
+</div>

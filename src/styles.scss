@@ -6,8 +6,116 @@
   max-height: min(90vh, 820px);
 }
 
+.popup-backdrop {
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
 @include respond-to("mobile") {
   .popup-backdrop {
     padding-top: 56px !important;
+  }
+
+  .header__brand:not(.header__brand--expanded) {
+    max-width: 56px !important;
+  }
+}
+
+.ui-tooltip:has(.globe-tooltip-col) {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.globe-tooltip-col {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 165px;
+  text-align: left;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 28px;
+    padding: 6px 26px 6px 12px;
+    box-sizing: border-box;
+    gap: 8px;
+  }
+
+  &__coords {
+    font-size: font-size("xxs");
+    font-family: var(--font-family-mono);
+    color: color("text-dim");
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  &__badge {
+    font-size: 10px;
+    font-family: var(--font-family-mono);
+    font-weight: font-weight("semibold");
+    color: color("accent");
+    background: rgba(color("accent"), 0.12);
+    padding: 1px 6px;
+    border-radius: radius("xs");
+    white-space: nowrap;
+  }
+
+  &__divider {
+    height: 1px;
+    width: 100%;
+    background: color("line");
+    margin: 0;
+    flex: none;
+  }
+
+  &__rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px 10px 12px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    white-space: nowrap;
+  }
+
+  &__label-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__icon {
+    display: inline-block;
+    flex-shrink: 0;
+
+    &--water {
+      color: #0284c7;
+    }
+
+    &--air {
+      color: #d37400;
+    }
+  }
+
+  &__label {
+    font-size: font-size("xs");
+    color: color("text-main");
+    white-space: nowrap;
+  }
+
+  &__val {
+    font-size: font-size("xs");
+    font-weight: font-weight("semibold");
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-family-mono);
+    color: color("text-bright");
+    white-space: nowrap;
   }
 }

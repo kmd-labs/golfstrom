@@ -2,36 +2,25 @@
 
 <app-splash></app-splash>
 
-<main class="viewport">
+<main class="viewport" [class.has-popup-open]="isPopupOpen()">
   <!-- Top HUD: Left Logotype + Language, Right View Switcher -->
   <header class="header" [class.header--popup-open]="isPopupOpen()">
     <div class="header__left">
-      <div class="header__brand glass-panel" (click)="openAbout()">
-        <button
-          type="button"
-          class="header__brand-btn"
-          [attr.aria-label]="t.openAbout"
-          (click)="openAbout(); $event.stopPropagation()">
-          <span class="header__logo">
-            <img
-              class="header__logo-img"
-              src="assets/design-system/logo/kmd-black-orange.svg"
-              alt="KMD" />
-          </span>
-          <span class="header__divider" aria-hidden="true"></span>
-          <h1 class="header__app-name">Golfstrom</h1>
-        </button>
-      </div>
+      <app-brand
+        [lang]="i18n.lang()"
+        (btnClick)="openAbout()">
+      </app-brand>
 
-      <div class="header__settings glass-panel" role="group" [attr.aria-label]="t.changeLanguage">
-        <app-dropdown
+      <div class="header__settings glass-panel">
+        <app-button
           variant="ghost"
-          [icon]="bp.mobile() ? null : globeIcon"
-          [options]="langOptions()"
-          [value]="i18n.lang()"
-          [ariaLabel]="t.changeLanguage"
-          (valueChange)="i18n.setLang($event)">
-        </app-dropdown>
+          [iconOnly]="true"
+          [ariaLabel]="t.settingsAria"
+          [titleText]="t.settingsAria"
+          [appTooltip]="t.settingsAria"
+          (btnClick)="openSettings()">
+          <lucide-icon [img]="settingsIcon" [size]="15"></lucide-icon>
+        </app-button>
       </div>
     </div>
 
@@ -42,35 +31,195 @@
           align="right"
           [fullWidth]="true"
           [options]="viewOptions()"
-          [value]="currentView()"
+          [value]="currentViewValue()"
           [icon]="currentViewIcon()"
           [ariaLabel]="t.chooseView"
-          (valueChange)="currentView.set($event)">
+          (valueChange)="onViewChange($event)">
         </app-dropdown>
       </div>
     </div>
   </header>
 
   <!-- Fullscreen Visualization Stage -->
-  <section class="stage" [attr.aria-label]="t.stageAriaLabel"></section>
+  <section class="stage" [attr.aria-label]="t.stageAriaLabel">
+    <app-globe [class.is-hidden]="state.viewMode() !== 'globe'"></app-globe>
+    <app-cross-section-view [class.is-hidden]="state.viewMode() !== 'cross-section'"></app-cross-section-view>
+  </section>
 
-  <!-- Bottom Dock: Sliders & Glossaries -->
+  <!-- Bottom Dock: 3 levels (1: date, thermal anomaly selector, glossary & data attribution; 2: weather for 2 cities left/right; 3: timeline) -->
   <footer class="dock-wrap">
     <div class="dock glass-panel">
-      <div class="dock__slider">
-        <app-timeline-slider
-          [min]="-100"
-          [max]="100"
-          [step]="1"
-          [value]="sliderValue()"
-          [ariaLabel]="t.timelineLabel"
-          (valueChange)="sliderValue.set($event)">
-        </app-timeline-slider>
+      <!-- Level 1: Date on left; Anomaly Toggle, Layers Dropdown, Summary, Data, Glossary on right -->
+      <div class="dock__level dock__level--1">
+        <div class="dock__status-group" role="group">
+          <div class="dock__date-pill" role="status" [appTooltip]="currentMonthName()">
+            <span class="dock__date-val">{{ currentDateLabel() }}</span>
+          </div>
+        </div>
+
+        <div class="dock__tools-group" role="group">
+          <!-- 1. Thermal Anomaly Toggle Button -->
+          <app-button
+            class="dock__anomaly-btn"
+            variant="toggle"
+            size="sm"
+            [active]="state.sstMode() === 'anomaly'"
+            [ariaLabel]="state.sstMode() === 'anomaly' ? t.sstModeAnomaly : t.sstModeAbsolute"
+            [appTooltip]="t.thermalAnomaly"
+            (btnClick)="state.toggleSstMode()">
+            <lucide-icon [img]="thermometerIcon" [size]="14"></lucide-icon>
+            <span class="dock__toggle-text">{{ t.thermalAnomaly }}</span>
+          </app-button>
+
+          <span class="dock__tools-divider" aria-hidden="true"></span>
+
+          <!-- 2. Layers & Active Pins Dropdown -->
+          <app-dropdown
+            variant="ghost"
+            direction="up"
+            align="right"
+            class="dock__layers-dropdown"
+            [icon]="layersIcon"
+            [iconOnly]="true"
+            [appTooltip]="t.layersTooltip"
+            [ariaLabel]="t.layers">
+            <div class="dock__layers-content">
+              <!-- Section A: Ocean Temperature Scale (Derived from Design System tokens) -->
+              <div class="dock__layers-section">
+                <div class="dock__layers-header">
+                  <span class="dock__layers-title">{{ t.sstScaleTitle }}</span>
+                  <span class="dock__layers-badge">{{ t.scaleSstShort }}</span>
+                </div>
+                <p class="dock__layers-desc">{{ t.sstScaleDesc }}</p>
+
+                <div class="dock__dropdown-scale">
+                  <div class="dock__dropdown-bar"></div>
+
+                  <div class="dock__dropdown-ticks">
+                    <span>{{ sstTickMin() }}</span>
+                    <span>{{ sstTickMid() }}</span>
+                    <span>{{ sstTickMax() }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dock__layers-divider" aria-hidden="true"></div>
+
+              <!-- Section B: Comparison Pins Legend -->
+              <div class="dock__layers-section">
+                <div class="dock__layers-header">
+                  <span class="dock__layers-title">{{ t.layersPinsTitle }}</span>
+                </div>
+
+                <div class="dock__layers-legend">
+                  <div class="dock__layers-legend-item">
+                    <span class="dock__layers-legend-dot dock__layers-legend-dot--blue" aria-hidden="true"></span>
+                    <span class="dock__layers-legend-text">{{ t.legendActivePin }}</span>
+                  </div>
+                  <div class="dock__layers-legend-item">
+                    <span class="dock__layers-legend-dot dock__layers-legend-dot--orange" aria-hidden="true"></span>
+                    <span class="dock__layers-legend-text">{{ t.legendInactivePin }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </app-dropdown>
+
+          <span class="dock__tools-divider" aria-hidden="true"></span>
+
+          <!-- 3. Summary Button (icon-only) -->
+          <app-button
+            variant="ghost"
+            [iconOnly]="true"
+            [appTooltip]="t.summaryTooltip"
+            [ariaLabel]="t.summary"
+            (btnClick)="openSummary()">
+            <lucide-icon [img]="summaryIcon" [size]="15"></lucide-icon>
+          </app-button>
+
+          <span class="dock__tools-divider" aria-hidden="true"></span>
+
+          <!-- 4. Data Sources Button (icon-only) -->
+          <app-button
+            variant="ghost"
+            [iconOnly]="true"
+            [appTooltip]="t.dataSourcesTitle"
+            [ariaLabel]="t.dataSourcesTitle"
+            (btnClick)="openSources()">
+            <lucide-icon [img]="databaseIcon" [size]="15"></lucide-icon>
+          </app-button>
+
+          <span class="dock__tools-divider" aria-hidden="true"></span>
+
+          <!-- 5. Glossary Button (icon-only) -->
+          <app-button
+            variant="ghost"
+            [iconOnly]="true"
+            [appTooltip]="t.glossary"
+            [ariaLabel]="t.glossary"
+            (btnClick)="openGlossary()">
+            <lucide-icon [img]="bookOpenIcon" [size]="15"></lucide-icon>
+          </app-button>
+        </div>
       </div>
-      <app-button variant="ghost" (btnClick)="openGlossary()">
-        <lucide-icon [img]="bookOpenIcon" [size]="15"></lucide-icon>
-        <span>{{ t.glossary }}</span>
-      </app-button>
+
+      <!-- Level 2: Weather for the 2 cities. One on the left, one on the right. -->
+      <div class="dock__level dock__level--2" role="group" [attr.aria-label]="t.inspectAir">
+        <div class="dock__city-card dock__city-card--west">
+          <span class="dock__city-name">{{ activeCity1Name() }}</span>
+          <span class="dock__city-temp">{{ activeCity1TempFormatted() }}</span>
+        </div>
+
+        <div class="dock__city-card dock__city-card--east">
+          <span class="dock__city-name">{{ activeCity2Name() }}</span>
+          <span class="dock__city-temp">{{ activeCity2TempFormatted() }}</span>
+        </div>
+      </div>
+
+      <!-- Level 3: Timeline full width with playback controls -->
+      <div class="dock__level dock__level--3">
+        <div class="dock__slider">
+          <app-timeline-slider
+            [min]="0"
+            [max]="12"
+            [step]="0.02"
+            [value]="state.month()"
+            [trackGradient]="dynamicTimelineGradient()"
+            [style.--timeline-rail-bg]="dynamicTimelineGradient()"
+            [ariaLabel]="t.timelineLabel"
+            (valueChange)="state.setMonth($event)">
+            <div timelineAction class="dock__play">
+              <app-dropdown
+                class="dock__speed"
+                variant="default"
+                align="right"
+                direction="up"
+                [icon]="speedIcon"
+                [iconOnly]="true"
+                [options]="speedOptions()"
+                [value]="state.playbackSpeed()"
+                [ariaLabel]="t.playbackSpeed + ' (' + state.playbackSpeed() + 'x)'"
+                (valueChange)="state.setPlaybackSpeed($event)">
+              </app-dropdown>
+
+              <app-button
+                class="dock__play-btn"
+                variant="play"
+                [iconOnly]="true"
+                [active]="state.isPlaying()"
+                [ariaLabel]="state.isPlaying() ? t.pause : t.play"
+                [appTooltip]="state.isPlaying() ? t.pause : t.play"
+                (btnClick)="state.togglePlay()">
+                @if (state.isPlaying()) {
+                  <lucide-icon [img]="pauseIcon" [size]="15"></lucide-icon>
+                } @else {
+                  <lucide-icon [img]="playIcon" [size]="15"></lucide-icon>
+                }
+              </app-button>
+            </div>
+          </app-timeline-slider>
+        </div>
+      </div>
     </div>
   </footer>
 

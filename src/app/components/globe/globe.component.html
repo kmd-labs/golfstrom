@@ -1,0 +1,24 @@
+<canvas
+  #canvasRef
+  id="c"
+  (pointerdown)="onPointerDown($event)"
+  (pointerup)="onPointerUp($event)"
+  (pointermove)="onPointerMove($event)">
+</canvas>
+
+@let t = i18n.t();
+<div class="labels">
+  @for (pin of pins; track pin.data.id) {
+    <div
+      #pinLabel
+      class="pin-label"
+      [class.pin-label--active]="pin.data.id === state.selectedPair().id"
+      (pointerdown)="$event.stopPropagation()"
+      (click)="onPinClick(pin.data); $event.stopPropagation()">
+      <span class="pin-label__title">{{ getPairTitle(pin.data) }}</span>
+      <span class="pin-label__diff">
+        ★ Δ {{ i18n.formatTemp(Math.abs(pin.data.janTempB - pin.data.janTempA), 'delta', false) }} ({{ t.seasonWinter }})
+      </span>
+    </div>
+  }
+</div>

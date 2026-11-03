@@ -1,0 +1,111 @@
+@use "variables" as *;
+
+.gl {
+  display: flex;
+  flex-direction: column;
+  gap: spacing("md");
+
+  &__search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  &__search-icon {
+    position: absolute;
+    left: 11px;
+    color: color("text-dim");
+    pointer-events: none;
+    display: inline-flex;
+  }
+
+  &__search {
+    width: 100%;
+    font: inherit;
+    font-size: font-size("sm");
+    padding: 8px 12px 8px 34px;
+    border-radius: radius("control");
+    border: 1px solid color("line");
+    background: color("btn-bg");
+    color: color("text-main");
+
+    &::placeholder {
+      color: color("text-dim");
+    }
+
+    &:focus-visible {
+      outline: 2px solid color("btn-active-blue-border");
+      outline-offset: 0;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: spacing("lg");
+  }
+
+  &__group {
+    dl {
+      margin: 0;
+    }
+  }
+
+  &__gtitle {
+    margin: 0 0 6px;
+    font-size: font-size("xxs");
+    font-weight: font-weight("bold");
+    color: color("accent");
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  &__item {
+    padding: 10px 0;
+    border-bottom: 1px solid color("line");
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    dt {
+      font-size: font-size("sm");
+      font-weight: font-weight("semibold");
+      color: color("text-bright");
+      margin-bottom: 3px;
+    }
+
+    dd {
+      margin: 0;
+      font-size: font-size("xs");
+      line-height: 1.55;
+      color: color("text-desc");
+    }
+  }
+
+  &__wiki {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 6px;
+    color: color("link-color");
+    text-decoration: none;
+    white-space: nowrap;
+    font-weight: font-weight("medium");
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    lucide-icon {
+      display: inline-flex;
+    }
+  }
+
+  &__empty {
+    font-size: font-size("sm");
+    color: color("text-dim");
+    text-align: center;
+    padding: 24px 0;
+  }
+}

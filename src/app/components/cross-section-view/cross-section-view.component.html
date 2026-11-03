@@ -1,0 +1,51 @@
+@let t = i18n.t();
+
+<section class="cross-section" [attr.aria-label]="t.crossSectionAria">
+  <!-- Fullscreen 2D Canvas Stage -->
+  <div #boxRef class="cross-section__box">
+    <canvas
+      #canvasRef
+      id="cv"
+      (pointermove)="onPointerMove($event)"
+      (pointerleave)="onPointerLeave()"></canvas>
+
+    <!-- Centered Gulf Stream Peak Callout Window -->
+    <div class="cross-section__callout glass-panel">
+      <div class="cross-section__callout-header">
+        <lucide-icon [img]="flameIcon" [size]="14" class="cross-section__callout-icon"></lucide-icon>
+        <span class="cross-section__callout-title">{{ t.gulfStreamPeak }}</span>
+        <span class="cross-section__callout-badge">{{ gulfStreamTempFormatted() }}</span>
+      </div>
+      <div class="cross-section__callout-anomaly">
+        <span>★ {{ t.anomLegendTitle }}: {{ gulfStreamAnomalyFormatted() }}</span>
+      </div>
+      <p class="cross-section__callout-desc">
+        {{ t.gulfStreamPeakDesc }}
+      </p>
+    </div>
+
+    <!-- Interactive Crosshair Tooltip -->
+    @if (hoverInfo()) {
+      <div
+        class="cross-section__hover-tooltip glass-panel"
+        [style.left.px]="hoverInfo()!.x"
+        [style.top.px]="hoverInfo()!.y">
+        <div class="cross-section__hover-title">
+          <span>{{ Math.abs(hoverInfo()!.lon).toFixed(1) }}°{{ hoverInfo()!.lon < 0 ? 'W' : 'E' }}</span>
+          @if (hoverInfo()!.feature) {
+            <span class="cross-section__hover-feat">· {{ hoverInfo()!.feature }}</span>
+          }
+        </div>
+        <div class="cross-section__hover-metrics">
+          @if (hoverInfo()!.isOcean) {
+            <span class="cross-section__hover-tag">🌊 {{ hoverInfo()!.depthM }} m</span>
+            <span class="cross-section__hover-val">{{ i18n.formatTemp(hoverInfo()!.temp, 'temp', true) }}</span>
+          } @else {
+            <span class="cross-section__hover-tag">☁ {{ hoverInfo()!.altKm.toFixed(1) }} km</span>
+            <span class="cross-section__hover-val">{{ i18n.formatTemp(hoverInfo()!.temp, 'temp', true) }}</span>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>

@@ -1,0 +1,68 @@
+name: Update weather data
+
+on:
+  schedule:
+    # Daily at 05:17 UTC: fetch latest NOAA OISST sea temperatures & Open-Meteo weather
+    # and prune oldest frames to maintain a rolling full year (52 weeks)
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-weather
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      # kmd-bot is a branch-protection bypass actor, so its short-lived token
+      # can commit the daily data snapshot to main while human changes still
+      # require a pull request.
+      - name: Create kmd-bot token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.KMD_BOT_APP_ID }}
+          private-key: ${{ secrets.KMD_BOT_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Restore NOAA download cache
+        uses: actions/cache@v4
+        with:
+          path: scripts/.cache
+          key: noaa-oisst-${{ runner.os }}-${{ hashFiles('scripts/fetch-current-weather.mjs') }}
+          restore-keys: |
+            noaa-oisst-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch latest sea-surface temperature and prune oldest data
+        run: npm run fetch:weather
+
+      - name: Commit updated rolling year data
+        run: |
+          if git diff --quiet -- src/assets/data; then
+            echo "No weather data changes."
+            exit 0
+          fi
+          git config user.name "kmd-bot[bot]"
+          git config user.email "5387484+kmd-bot[bot]@users.noreply.github.com"
+          git add src/assets/data
+          git commit -m "chore(data): daily sea temperature and rolling year weather update"
+          git push

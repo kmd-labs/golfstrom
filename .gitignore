@@ -3,3 +3,15 @@ node_modules/
 .angular/
 .DS_Store
 *.log
+
+# Cache
+scripts/.cache/
+
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+.devcontainer/
+.dockerignore
+.env.example
+nginx.conf
+

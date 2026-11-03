@@ -1,0 +1,72 @@
+@let t = i18n.t();
+@let p = currentPair;
+
+<div class="pair-modal">
+  <!-- Transect Selector Tabs for All 4 Pairs -->
+  <div class="pair-modal__tabs" role="tablist">
+    @for (item of pairs; track item.id) {
+      <button
+        type="button"
+        class="pair-modal__tab"
+        [class.pair-modal__tab--active]="item.id === p.id"
+        (click)="selectPair(item)">
+        <span class="pair-modal__tab-lat">{{ item.lat.toFixed(0) }}°N</span>
+        <span class="pair-modal__tab-names">{{ getCityName(item.cityAKey) }} ↔ {{ getCityName(item.cityBKey) }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="pair-modal__grid">
+    <!-- West Atlantic City -->
+    <div class="pair-modal__card">
+      <h3 class="pair-modal__card-title">{{ getCityName(p.cityAKey) }}</h3>
+      <span class="pair-modal__card-coords">
+        {{ p.lat.toFixed(1) }}°N, {{ Math.abs(p.lonA).toFixed(1) }}°W ({{ t.regionNorthAmerica }})
+      </span>
+      <div class="pair-modal__stats">
+        <div class="pair-modal__stat">
+          <span class="pair-modal__stat-label">{{ t.seasonJanWinter }}</span>
+          <span class="pair-modal__stat-val" [class.pair-modal__stat-val--cold]="p.janTempA < 5">
+            {{ i18n.formatTemp(p.janTempA, 'temp', true) }}
+          </span>
+        </div>
+        <div class="pair-modal__stat">
+          <span class="pair-modal__stat-label">{{ t.seasonJulSummer }}</span>
+          <span class="pair-modal__stat-val">
+            {{ i18n.formatTemp(p.julTempA, 'temp', true) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- East Atlantic City -->
+    <div class="pair-modal__card pair-modal__card--east">
+      <h3 class="pair-modal__card-title">{{ getCityName(p.cityBKey) }}</h3>
+      <span class="pair-modal__card-coords">
+        {{ p.lat.toFixed(1) }}°N, {{ Math.abs(p.lonB).toFixed(1) }}°{{ p.lonB < 0 ? 'W' : 'E' }} ({{ t.regionEurope }})
+      </span>
+      <div class="pair-modal__stats">
+        <div class="pair-modal__stat">
+          <span class="pair-modal__stat-label">{{ t.seasonJanWinter }}</span>
+          <span class="pair-modal__stat-val pair-modal__stat-val--warm">
+            {{ i18n.formatTemp(p.janTempB, 'temp', true) }}
+          </span>
+        </div>
+        <div class="pair-modal__stat">
+          <span class="pair-modal__stat-label">{{ t.seasonJulSummer }}</span>
+          <span class="pair-modal__stat-val">
+            {{ i18n.formatTemp(p.julTempB, 'temp', true) }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pair-modal__delta">
+    <span>★ {{ t.winterDifference }}: +{{ i18n.formatTemp(Math.abs(p.janTempB - p.janTempA), 'delta', false) }} ({{ t.regionEurope }})</span>
+  </div>
+
+  <p class="pair-modal__desc">
+    {{ getPairDescription() }}
+  </p>
+</div>
