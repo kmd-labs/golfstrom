@@ -12,6 +12,7 @@
     <div
       #pinLabel
       class="pin-label"
+      [class.pin-label--active]="pin.data.id === state.selectedPair().id"
       (pointerdown)="$event.stopPropagation()"
       (click)="onPinClick(pin.data); $event.stopPropagation()">
       <span class="pin-label__title">{{ getPairTitle(pin.data) }}</span>

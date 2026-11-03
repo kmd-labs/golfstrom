@@ -67,13 +67,16 @@
             <span class="dock__date-val">{{ currentDateLabel() }}</span>
           </div>
 
-          <div
-            class="dock__phase-badge"
-            role="status">
-            <span class="dock__phase-dot" aria-hidden="true"></span>
-            <span class="dock__phase-name">
-              {{ state.sstMode() === 'anomaly' ? t.sstAnomaly : t.sstAbsolute }}
-            </span>
+          <div class="dock__city-temps" role="status" [attr.aria-label]="t.inspectAir">
+            <div class="dock__city-entry">
+              <span class="dock__city-name">{{ activeCity1Name() }}</span>
+              <span class="dock__city-temp">{{ activeCity1TempFormatted() }}</span>
+            </div>
+            <span class="dock__city-divider" aria-hidden="true"></span>
+            <div class="dock__city-entry">
+              <span class="dock__city-name">{{ activeCity2Name() }}</span>
+              <span class="dock__city-temp">{{ activeCity2TempFormatted() }}</span>
+            </div>
           </div>
         </div>
 

@@ -176,9 +176,22 @@ export class SstDataService {
     let normM = month % 12;
     if (normM < 0) normM += 12;
 
-    const fIdx = 8 + (normM / 12) * 53;
+    const total = this.meta()?.totalFrames || 52;
+    let fIdx: number;
+    let maxIdx: number;
+
+    if (total <= 53) {
+      // Rolling full-year dataset (52 frames)
+      fIdx = (normM / 12) * (total - 1);
+      maxIdx = total - 1;
+    } else {
+      // Legacy multi-year dataset: map month 0..12 to Jan 1..Dec 31, 2025 (frames 8..61)
+      fIdx = 8 + (normM / 12) * 53;
+      maxIdx = Math.min(total - 1, 61);
+    }
+
     const indexA = Math.floor(fIdx);
-    const indexB = Math.min(indexA + 1, 61);
+    const indexB = Math.min(indexA + 1, maxIdx);
     const t = fIdx - indexA;
 
     return { indexA, indexB, t };

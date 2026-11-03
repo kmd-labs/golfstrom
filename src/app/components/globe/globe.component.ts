@@ -110,11 +110,34 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private canvasHeight = 1;
   private pinElements: HTMLElement[] = [];
   private lastLayoutMode: 'portrait' | 'landscape' | 'desktop' | null = null;
+  private pinTexDefault?: THREE.CanvasTexture;
+  private pinTexActive?: THREE.CanvasTexture;
 
   private readonly pv = new THREE.Vector3();
   private readonly toCam = new THREE.Vector3();
 
   constructor() {
+    effect(() => {
+      // Dynamically highlight active city pair in blue
+      const activeId = this.state.selectedPair().id;
+      if (!this.pinTexActive || !this.pinTexDefault) return;
+      for (const p of this.pins) {
+        const isActive = p.data.id === activeId;
+        const tex = isActive ? this.pinTexActive : this.pinTexDefault;
+        const scale = isActive ? 0.95 : 0.65;
+        if (p.spriteA.material.map !== tex) {
+          p.spriteA.material.map = tex;
+          p.spriteA.material.needsUpdate = true;
+        }
+        if (p.spriteB.material.map !== tex) {
+          p.spriteB.material.map = tex;
+          p.spriteB.material.needsUpdate = true;
+        }
+        p.spriteA.scale.set(scale, scale, 1);
+        p.spriteB.scale.set(scale, scale, 1);
+      }
+    });
+
     effect(() => {
       // Re-render SST texture once when dataset finishes loading
       if (this.sstData.isLoaded()) {
@@ -706,40 +729,70 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private initPins() {
     this.scene.add(this.pinGroup);
 
-    const pinCanvas = document.createElement('canvas');
-    pinCanvas.width = pinCanvas.height = 128;
-    const pc = pinCanvas.getContext('2d')!;
-    pc.translate(64, 64);
-    pc.strokeStyle = 'rgba(211, 116, 0, 0.4)';
-    pc.lineWidth = 10;
-    pc.beginPath();
-    pc.arc(0, 0, 52, 0, Math.PI * 2);
-    pc.stroke();
-    pc.fillStyle = '#d37400';
-    pc.beginPath();
-    pc.arc(0, 0, 36, 0, Math.PI * 2);
-    pc.fill();
-    pc.fillStyle = '#ffffff';
-    pc.beginPath();
-    pc.arc(0, 0, 16, 0, Math.PI * 2);
-    pc.fill();
+    // Inactive pair texture (warm orange accent)
+    const pinCanvasD = document.createElement('canvas');
+    pinCanvasD.width = pinCanvasD.height = 128;
+    const pcD = pinCanvasD.getContext('2d')!;
+    pcD.translate(64, 64);
+    pcD.strokeStyle = 'rgba(211, 116, 0, 0.4)';
+    pcD.lineWidth = 10;
+    pcD.beginPath();
+    pcD.arc(0, 0, 52, 0, Math.PI * 2);
+    pcD.stroke();
+    pcD.fillStyle = '#d37400';
+    pcD.beginPath();
+    pcD.arc(0, 0, 36, 0, Math.PI * 2);
+    pcD.fill();
+    pcD.fillStyle = '#ffffff';
+    pcD.beginPath();
+    pcD.arc(0, 0, 16, 0, Math.PI * 2);
+    pcD.fill();
+    this.pinTexDefault = new THREE.CanvasTexture(pinCanvasD);
 
-    const pinTex = new THREE.CanvasTexture(pinCanvas);
+    // Active selected pair texture (bold royal blue)
+    const pinCanvasA = document.createElement('canvas');
+    pinCanvasA.width = pinCanvasA.height = 128;
+    const pcA = pinCanvasA.getContext('2d')!;
+    pcA.translate(64, 64);
+    pcA.strokeStyle = 'rgba(37, 99, 235, 0.45)';
+    pcA.lineWidth = 12;
+    pcA.beginPath();
+    pcA.arc(0, 0, 54, 0, Math.PI * 2);
+    pcA.stroke();
+    pcA.fillStyle = '#2563eb';
+    pcA.beginPath();
+    pcA.arc(0, 0, 38, 0, Math.PI * 2);
+    pcA.fill();
+    pcA.fillStyle = '#ffffff';
+    pcA.beginPath();
+    pcA.arc(0, 0, 18, 0, Math.PI * 2);
+    pcA.fill();
+    pcA.fillStyle = '#1d4ed8';
+    pcA.beginPath();
+    pcA.arc(0, 0, 8, 0, Math.PI * 2);
+    pcA.fill();
+    this.pinTexActive = new THREE.CanvasTexture(pinCanvasA);
+
+    const activeId = this.state.selectedPair().id;
 
     this.pins = LATITUDE_PAIRS.map(data => {
+      const isActive = data.id === activeId;
+      const tex = isActive ? this.pinTexActive! : this.pinTexDefault!;
+      const scale = isActive ? 0.95 : 0.65;
+
       const posA = this.math.pos(data.lonA, data.lat, this.math.R * 1.025, new THREE.Vector3());
       const spA = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: pinTex, depthTest: false, transparent: true })
+        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })
       );
-      spA.scale.set(0.7, 0.7, 1);
+      spA.scale.set(scale, scale, 1);
       spA.position.copy(posA);
       this.pinGroup.add(spA);
 
       const posB = this.math.pos(data.lonB, data.lat, this.math.R * 1.025, new THREE.Vector3());
       const spB = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: pinTex, depthTest: false, transparent: true })
+        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })
       );
-      spB.scale.set(0.7, 0.7, 1);
+      spB.scale.set(scale, scale, 1);
       spB.position.copy(posB);
       this.pinGroup.add(spB);
 

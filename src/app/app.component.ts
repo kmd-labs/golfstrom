@@ -32,6 +32,7 @@ import { CrossSectionViewComponent } from './components/cross-section-view/cross
 import { GlossaryComponent } from './components/glossary/glossary.component';
 import { ViewMode } from './core/models/golfstrom.model';
 import { LATITUDE_PAIRS, PLAYBACK_SPEEDS } from './core/constants/golfstrom-data';
+import { SstDataService } from './core/services/sst-data.service';
 
 @Component({
   selector: 'app-root',
@@ -59,6 +60,7 @@ export class AppComponent implements OnInit {
   readonly about = inject(AboutService);
   readonly splash = inject(SplashService);
   readonly state = inject(GolfstromStateService);
+  readonly sstData = inject(SstDataService);
 
   readonly globeIcon = Globe;
   readonly activityIcon = Activity;
@@ -70,10 +72,74 @@ export class AppComponent implements OnInit {
 
   readonly isPopupOpen = computed(() => this.popup.config() !== null);
 
+  /** Continuous Date object computed from keyframe timeline or calendar year */
+  readonly currentDate = computed<Date>(() => {
+    const m = this.state.month();
+    const meta = this.sstData.meta();
+    const kfs = meta?.keyframes;
+    if (kfs && kfs.length > 0) {
+      const pair = this.sstData.getKeyframePair(m);
+      if (pair && kfs[pair.indexA] && kfs[pair.indexB]) {
+        const dateA = new Date(kfs[pair.indexA].date).getTime();
+        const dateB = new Date(kfs[pair.indexB].date).getTime();
+        const curMs = dateA + (dateB - dateA) * pair.t;
+        return new Date(curMs);
+      }
+    }
+    const startMs = Date.UTC(2025, 0, 1);
+    const yearMs = 365 * 24 * 60 * 60 * 1000;
+    return new Date(startMs + (m / 12) * yearMs);
+  });
+
   readonly currentMonthName = computed(() => {
+    const d = this.currentDate();
     const t = this.i18n.t();
-    const idx = this.state.currentMonthIndex();
-    return t.monthNames[idx] || '';
+    return t.monthNames[d.getUTCMonth()] || '';
+  });
+
+  /**
+   * Formats current date with year and locale support (e.g. "15 Jan 2025" or "15 Sty 2025").
+   * Day padded to 2 digits, month 3 letters, year 4 digits => constant 11 chars to prevent jumping.
+   */
+  readonly currentDateLabel = computed(() => {
+    const d = this.currentDate();
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const t = this.i18n.t();
+    const month = t.shortMonthNames[d.getUTCMonth()] || '';
+    const year = d.getUTCFullYear();
+    return `${day} ${month} ${year}`;
+  });
+
+  readonly activeCity1Name = computed(() => {
+    const p = this.state.selectedPair();
+    const t = this.i18n.t() as any;
+    return t[p.cityAKey] || p.cityAKey;
+  });
+
+  readonly activeCity2Name = computed(() => {
+    const p = this.state.selectedPair();
+    const t = this.i18n.t() as any;
+    return t[p.cityBKey] || p.cityBKey;
+  });
+
+  /** Monospace tabular real air temperature for City 1 (North America) */
+  readonly activeCity1TempFormatted = computed(() => {
+    const p = this.state.selectedPair();
+    const m = this.state.month();
+    const val = this.sstData.sampleRealAir(p.lonA, p.lat, m);
+    if (val === null || !Number.isFinite(val)) return '--.-°C';
+    const sign = val > 0 ? '+' : '';
+    return `${sign}${val.toFixed(1)}°C`;
+  });
+
+  /** Monospace tabular real air temperature for City 2 (Europe) */
+  readonly activeCity2TempFormatted = computed(() => {
+    const p = this.state.selectedPair();
+    const m = this.state.month();
+    const val = this.sstData.sampleRealAir(p.lonB, p.lat, m);
+    if (val === null || !Number.isFinite(val)) return '--.-°C';
+    const sign = val > 0 ? '+' : '';
+    return `${sign}${val.toFixed(1)}°C`;
   });
 
   readonly langOptions = computed<DropdownOption<Lang>[]>(() =>
@@ -122,18 +188,6 @@ export class AppComponent implements OnInit {
     }
   }
 
-  /** Current day and month for the top-left date pill (e.g. "15 Jan" or "15 Sty") */
-  readonly currentDateLabel = computed(() => {
-    const m = this.state.month();
-    const startMs = Date.UTC(2025, 0, 1);
-    const yearMs = 365 * 24 * 60 * 60 * 1000;
-    const currentMs = startMs + (m / 12) * yearMs;
-    const d = new Date(currentMs);
-    const day = d.getUTCDate();
-    const t = this.i18n.t();
-    const month = t.shortMonthNames[d.getUTCMonth()] || '';
-    return `${day} ${month}`;
-  });
 
   readonly speedOptions = computed<DropdownOption<number>[]>(() =>
     PLAYBACK_SPEEDS.map(s => ({

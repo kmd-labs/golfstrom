@@ -56,6 +56,22 @@
     box-shadow: 0 6px 20px color("shadow-heavy");
   }
 
+  &--active {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 1.5px #2563eb, 0 6px 20px rgba(37, 99, 235, 0.25);
+    background: rgba(255, 255, 255, 0.96);
+
+    .pin-label__title {
+      color: #1d4ed8;
+      font-weight: font-weight("bold");
+    }
+
+    .pin-label__diff {
+      color: #2563eb;
+      font-weight: font-weight("semibold");
+    }
+  }
+
   &__title {
     font-size: font-size("xs");
     font-weight: font-weight("semibold");

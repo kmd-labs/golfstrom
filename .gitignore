@@ -4,7 +4,9 @@ node_modules/
 .DS_Store
 *.log
 
-# Docker (local use only)
+# Cache
+scripts/.cache/
+
 Dockerfile
 Dockerfile.*
 docker-compose.yml
