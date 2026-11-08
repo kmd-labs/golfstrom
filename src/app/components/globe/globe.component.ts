@@ -9,7 +9,8 @@ import {
   NgZone,
   inject,
   effect,
-  untracked
+  untracked,
+  signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
@@ -118,6 +119,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private readonly mouseVec = new THREE.Vector2();
   private downXY: [number, number] | null = null;
   private hoverPin: LatitudePairPin | null = null;
+  readonly hoverPair = signal<LatitudePairPin | null>(null);
 
   private lastTooltipSx = -999;
   private lastTooltipSy = -999;
@@ -141,26 +143,9 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      // Dynamically highlight active city pair in blue
-      const activeId = this.state.selectedPair().id;
-      if (!this.pinTexActive || !this.pinTexDefault) return;
-      const isMobile = this.bp.mobile();
-      for (const p of this.pins) {
-        const isActive = p.data.id === activeId;
-        const tex = isActive ? this.pinTexActive : this.pinTexDefault;
-        const baseScale = isMobile ? 1.4 : 0.8;
-        const scale = isActive ? baseScale * 1.3 : baseScale;
-        if (p.spriteA && p.spriteA.material.map !== tex) {
-          p.spriteA.material.map = tex;
-          p.spriteA.material.needsUpdate = true;
-        }
-        if (p.spriteB && p.spriteB.material.map !== tex) {
-          p.spriteB.material.map = tex;
-          p.spriteB.material.needsUpdate = true;
-        }
-        p.spriteA?.scale.set(scale, scale, 1);
-        p.spriteB?.scale.set(scale, scale, 1);
-      }
+      // Dynamically highlight active city pair and update pin opacities
+      this.state.selectedPair();
+      this.updatePinVisuals();
     });
 
     effect(() => {
@@ -244,7 +229,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     const isLand = isMobileLandscape();
     const portrait = !isLand && (this.canvasWidth / (this.canvasHeight || 1) < 0.95 || isAtMost('mobile'));
-    const initialDist = portrait ? 60 : isLand ? 44 : 52;
+    const initialDist = portrait ? 30 : isLand ? 22 : 26;
     this.lastLayoutMode = isLand ? 'landscape' : portrait ? 'portrait' : 'desktop';
 
     // Target position: centered on North Atlantic (lon -40°, lat 38°)
@@ -259,8 +244,8 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
-    this.controls.minDistance = 14.0;
-    this.controls.maxDistance = 100.0;
+    this.controls.minDistance = 11.0;
+    this.controls.maxDistance = 60.0;
     this.controls.enablePan = false;
     this.controls.target.set(0, 0, 0);
     this.controls.update();
@@ -844,6 +829,8 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     const activeId = this.state.selectedPair().id;
     const isMobile = this.bp.mobile();
+    const opActive = this.theme.getTokenOpacity('pin-active', 0.8);
+    const opDefault = this.theme.getTokenOpacity('pin-default', 0.5);
 
     for (const p of this.pins) {
       const data = p.data;
@@ -851,9 +838,10 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       const tex = isActive ? this.pinTexActive! : this.pinTexDefault!;
       const baseScale = isMobile ? 1.4 : 0.8;
       const scale = isActive ? baseScale * 1.3 : baseScale;
+      const opacity = isActive ? opActive : opDefault;
 
       const spA = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })
+        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity })
       );
       spA.scale.set(scale, scale, 1);
       spA.position.copy(p.posA);
@@ -861,7 +849,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       p.spriteA = spA;
 
       const spB = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })
+        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity })
       );
       spB.scale.set(scale, scale, 1);
       spB.position.copy(p.posB);
@@ -1230,13 +1218,69 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  private updatePinVisuals() {
+    if (!this.pinTexActive || !this.pinTexDefault) return;
+    const activeId = this.state.selectedPair().id;
+    const hoverId = this.hoverPin?.id;
+    const isMobile = this.bp.mobile();
+
+    const opActive = this.theme.getTokenOpacity('pin-active', 0.8);
+    const opHover = this.theme.getTokenOpacity('pin-hover', 0.7);
+    const opDefault = this.theme.getTokenOpacity('pin-default', 0.5);
+
+    for (const p of this.pins) {
+      const isActive = p.data.id === activeId;
+      const isHovered = p.data.id === hoverId;
+      const tex = isActive ? this.pinTexActive : this.pinTexDefault;
+      const baseScale = isMobile ? 1.4 : 0.8;
+      const scale = isActive ? baseScale * 1.3 : (isHovered ? baseScale * 1.15 : baseScale);
+      const opacity = isActive ? opActive : (isHovered ? opHover : opDefault);
+
+      if (p.spriteA) {
+        if (p.spriteA.material.map !== tex) {
+          p.spriteA.material.map = tex;
+          p.spriteA.material.needsUpdate = true;
+        }
+        p.spriteA.material.opacity = opacity;
+        p.spriteA.scale.set(scale, scale, 1);
+      }
+
+      if (p.spriteB) {
+        if (p.spriteB.material.map !== tex) {
+          p.spriteB.material.map = tex;
+          p.spriteB.material.needsUpdate = true;
+        }
+        p.spriteB.material.opacity = opacity;
+        p.spriteB.scale.set(scale, scale, 1);
+      }
+    }
+  }
+
   onPointerMove(e: PointerEvent) {
     if (e.buttons) return;
     const hoverRadius = this.bp.mobile() ? 36 : 24;
     const hit = this.pickPin(e.clientX, e.clientY, hoverRadius);
     if (hit !== this.hoverPin) {
       this.hoverPin = hit;
+      this.hoverPair.set(hit);
       this.canvasRef.nativeElement.style.cursor = (hit || this.inspectedPoint) ? 'pointer' : '';
+      this.updatePinVisuals();
+    }
+  }
+
+  onPinHover(pair: LatitudePairPin) {
+    if (this.hoverPin !== pair) {
+      this.hoverPin = pair;
+      this.hoverPair.set(pair);
+      this.updatePinVisuals();
+    }
+  }
+
+  onPinHoverLeave() {
+    if (this.hoverPin !== null) {
+      this.hoverPin = null;
+      this.hoverPair.set(null);
+      this.updatePinVisuals();
     }
   }
 
@@ -1269,7 +1313,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     if (this.camera && this.renderer) {
       if (this.lastLayoutMode && this.lastLayoutMode !== layoutMode) {
-        const targetDist = portrait ? 60 : isLand ? 44 : 52;
+        const targetDist = portrait ? 30 : isLand ? 22 : 26;
         this.camera.position.setLength(targetDist);
       }
       this.lastLayoutMode = layoutMode;

@@ -13,6 +13,9 @@
       #pinLabel
       class="pin-label"
       [class.pin-label--active]="pin.data.id === state.selectedPair().id"
+      [class.pin-label--hover]="pin.data.id === hoverPair()?.id"
+      (pointerenter)="onPinHover(pin.data)"
+      (pointerleave)="onPinHoverLeave()"
       (pointerdown)="$event.stopPropagation()"
       (click)="onPinClick(pin.data); $event.stopPropagation()">
       <span class="pin-label__title">{{ getPairTitle(pin.data) }}</span>
