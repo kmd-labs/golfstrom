@@ -328,13 +328,18 @@
     &--anomaly {
       background: linear-gradient(
         to right,
-        var(--color-anom-m6) 0%,
-        var(--color-anom-m3) 25%,
-        var(--color-anom-m1) 41.7%,
-        var(--color-anom-0) 50%,
-        var(--color-anom-p1) 58.3%,
-        var(--color-anom-p3) 75%,
-        var(--color-anom-p6) 100%
+        color("sst-m2"),
+        color("sst-0"),
+        color("sst-5"),
+        color("sst-10"),
+        color("sst-15"),
+        color("sst-20"),
+        color("sst-23"),
+        color("sst-25-5"),
+        color("sst-27-5"),
+        color("sst-29-2"),
+        color("sst-31"),
+        color("sst-35")
       );
     }
   }

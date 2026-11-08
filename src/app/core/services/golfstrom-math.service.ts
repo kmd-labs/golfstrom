@@ -14,15 +14,20 @@ export const SST_SCALE_RANGE: [number, number] = [-2, 35];
 /** Shown range of the temperature anomaly scale (°C). */
 export const ANOM_SCALE_RANGE: [number, number] = [-6, 6];
 
-/** Temperature Anomaly (°C vs normal) scale stops mapped to SCSS design tokens */
+/** Temperature Anomaly (°C vs normal) scale stops mapped to KMD brand thermal gradient */
 export const ANOM_COLOR_TOKENS: [number, string][] = [
-  [-6.0, 'anom-m6'],
-  [-3.0, 'anom-m3'],
-  [-1.0, 'anom-m1'],
-  [0.0, 'anom-0'],
-  [1.0, 'anom-p1'],
-  [3.0, 'anom-p3'],
-  [6.0, 'anom-p6']
+  [-6.0, 'sst-m2'],
+  [-4.5, 'sst-0'],
+  [-3.0, 'sst-5'],
+  [-2.0, 'sst-10'],
+  [-1.0, 'sst-15'],
+  [0.0, 'sst-20'],
+  [1.0, 'sst-23'],
+  [2.0, 'sst-25-5'],
+  [3.0, 'sst-27-5'],
+  [4.0, 'sst-29-2'],
+  [5.0, 'sst-31'],
+  [6.0, 'sst-35']
 ];
 
 /** Thermal (Sea Surface Temperature, °C) scale stops mapped to SCSS design tokens */
@@ -78,7 +83,7 @@ export class GolfstromMathService {
    * ensuring 100% color consistency between the WebGL/Canvas visualizers and the dock legends.
    */
   refreshLutsFromTokens(): void {
-    this.lutSst = this.buildLUT(THERMAL_COLOR_TOKENS, {
+    const thermalFallbacks: Record<string, string> = {
       'sst-m2': '#829c9e',
       'sst-0': '#7f98a2',
       'sst-5': '#7b8ead',
@@ -91,18 +96,10 @@ export class GolfstromMathService {
       'sst-29-2': '#d37400',
       'sst-31': '#cc3e1c',
       'sst-35': '#a40d19'
-    });
+    };
 
-    this.lutAnom = this.buildLUT(ANOM_COLOR_TOKENS, {
-      'anom-m6': '#1d4ed8',
-      'anom-m3': '#3b82f6',
-      'anom-m1': '#bae6fd',
-      'anom-0': '#f5f7fb',
-      'anom-p1': '#fbe8d0',
-      'anom-p3': '#d37400',
-      'anom-p6': '#dc2626'
-    });
-
+    this.lutSst = this.buildLUT(THERMAL_COLOR_TOKENS, thermalFallbacks);
+    this.lutAnom = this.buildLUT(ANOM_COLOR_TOKENS, thermalFallbacks);
     this.lutAir = this.buildAirLut();
   }
 
