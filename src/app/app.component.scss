@@ -212,6 +212,7 @@
     flex-direction: column;
     gap: 10px;
     width: 270px;
+    max-width: calc(100vw - 32px);
     padding: 4px;
     box-sizing: border-box;
   }

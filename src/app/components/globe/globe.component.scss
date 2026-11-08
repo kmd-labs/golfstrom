@@ -50,6 +50,7 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   will-change: transform, opacity;
+  transition: opacity transition("fast"), border-color transition("fast"), box-shadow transition("fast"), background transition("fast");
 
   &:hover,
   &--hover {
