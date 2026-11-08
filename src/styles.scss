@@ -1,6 +1,16 @@
 @use "variables" as *;
 @use "base";
 
+:root {
+  --color-anom-m6: #{palette("primary-700")};
+  --color-anom-m3: #{palette("primary-500")};
+  --color-anom-m1: #{palette("info-200")};
+  --color-anom-0: #{palette("neutral-50")};
+  --color-anom-p1: #{palette("warning-100")};
+  --color-anom-p3: #{palette("warning-500")};
+  --color-anom-p6: #{palette("danger-600")};
+}
+
 .popup-dialog:has(.about-page, .about-popup) {
   max-width: min(880px, calc(100vw - 32px));
   max-height: min(90vh, 820px);

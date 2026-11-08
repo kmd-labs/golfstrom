@@ -84,21 +84,31 @@
             [appTooltip]="t.layersTooltip"
             [ariaLabel]="t.layers">
             <div class="dock__layers-content">
-              <!-- Section A: Ocean Temperature Scale (Derived from Design System tokens) -->
+              <!-- Section A: Ocean Temperature / Anomaly Scale (Derived from Design System tokens) -->
               <div class="dock__layers-section">
                 <div class="dock__layers-header">
-                  <span class="dock__layers-title">{{ t.sstScaleTitle }}</span>
-                  <span class="dock__layers-badge">{{ t.scaleSstShort }}</span>
+                  <span class="dock__layers-title">{{ state.sstMode() === 'anomaly' ? t.anomalyScaleTitle : t.sstScaleTitle }}</span>
+                  <span class="dock__layers-badge">{{ state.sstMode() === 'anomaly' ? t.scaleAnomShort : t.scaleSstShort }}</span>
                 </div>
-                <p class="dock__layers-desc">{{ t.sstScaleDesc }}</p>
+                <p class="dock__layers-desc">{{ state.sstMode() === 'anomaly' ? t.anomalyScaleDesc : t.sstScaleDesc }}</p>
 
                 <div class="dock__dropdown-scale">
-                  <div class="dock__dropdown-bar"></div>
+                  <div
+                    class="dock__dropdown-bar"
+                    [class.dock__dropdown-bar--anomaly]="state.sstMode() === 'anomaly'"></div>
 
                   <div class="dock__dropdown-ticks">
-                    <span>{{ sstTickMin() }}</span>
-                    <span>{{ sstTickMid() }}</span>
-                    <span>{{ sstTickMax() }}</span>
+                    @if (state.sstMode() === 'anomaly') {
+                      <span>{{ anomTickM6() }}</span>
+                      <span>{{ anomTickM3() }}</span>
+                      <span>{{ anomTick0() }}</span>
+                      <span>{{ anomTickP3() }}</span>
+                      <span>{{ anomTickP6() }}</span>
+                    } @else {
+                      <span>{{ sstTickMin() }}</span>
+                      <span>{{ sstTickMid() }}</span>
+                      <span>{{ sstTickMax() }}</span>
+                    }
                   </div>
                 </div>
               </div>
