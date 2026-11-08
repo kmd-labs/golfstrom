@@ -12,15 +12,17 @@ export interface LutEntry {
 export const SST_SCALE_RANGE: [number, number] = [-2, 35];
 
 /** Shown range of the temperature anomaly scale (°C). */
-export const ANOM_SCALE_RANGE: [number, number] = [-3, 3];
+export const ANOM_SCALE_RANGE: [number, number] = [-6, 6];
 
 /** Temperature Anomaly (°C vs normal) scale stops mapped to SCSS design tokens */
 export const ANOM_COLOR_TOKENS: [number, string][] = [
+  [-6.0, 'anom-m6'],
   [-3.0, 'anom-m3'],
-  [-1.5, 'anom-m1-5'],
+  [-1.0, 'anom-m1'],
   [0.0, 'anom-0'],
-  [1.5, 'anom-p1-5'],
-  [3.0, 'anom-p3']
+  [1.0, 'anom-p1'],
+  [3.0, 'anom-p3'],
+  [6.0, 'anom-p6']
 ];
 
 /** Thermal (Sea Surface Temperature, °C) scale stops mapped to SCSS design tokens */
@@ -92,11 +94,13 @@ export class GolfstromMathService {
     });
 
     this.lutAnom = this.buildLUT(ANOM_COLOR_TOKENS, {
-      'anom-m3': '#2563eb',
-      'anom-m1-5': '#60a5fa',
+      'anom-m6': '#1d4ed8',
+      'anom-m3': '#3b82f6',
+      'anom-m1': '#bae6fd',
       'anom-0': '#f5f7fb',
-      'anom-p1-5': '#e6922e',
-      'anom-p3': '#dc2626'
+      'anom-p1': '#fbe8d0',
+      'anom-p3': '#d37400',
+      'anom-p6': '#dc2626'
     });
 
     this.lutAir = this.buildAirLut();
@@ -198,16 +202,18 @@ export class GolfstromMathService {
   }
 
   /**
-   * Evaluates SST anomaly (°C relative to zonal mean) clamped to official design system scale range [-3, 3]
+   * Evaluates SST anomaly (°C relative to zonal mean) clamped to official design system scale range [-6, 6]
    */
   getAnomaly(lon: number, lat: number, month: number): number {
     const sst = this.getSst(lon, lat, month);
-    // Approximate zonal mean
+    // Base zonal mean with seasonal insolation cycle
     const solarMonth = (month - 2.8) * (2 * Math.PI / 12);
     const declination = 23.44 * Math.sin(solarMonth);
     const effLat = lat - declination * 0.75;
-    const baseZonal = 29.5 * Math.cos(this.clamp(Math.abs(effLat), 0, 90) * (Math.PI / 150)) - 2.5;
-    return this.clamp(sst - baseZonal, -3.0, 3.0);
+    let baseZonal = 29.5 * Math.cos(this.clamp(Math.abs(effLat), 0, 90) * (Math.PI / 150)) - 2.5;
+    const seasonAmp = 4.5 * Math.sin(Math.abs(lat) * (Math.PI / 90));
+    baseZonal += seasonAmp * Math.sin(solarMonth);
+    return this.clamp(sst - baseZonal, -6.0, 6.0);
   }
 
   private distanceToPath(lon: number, lat: number): { dist: number; u: number } {

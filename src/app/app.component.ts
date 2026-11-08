@@ -181,12 +181,12 @@ export class AppComponent implements OnInit {
     return `${this.i18n.formatTemp(diff, 'delta', true)} (${t.seasonWinter})`;
   });
 
-  // Official Design System Anomaly Scale Ticks (-3.0 °C to +3.0 °C)
+  // Official Design System Anomaly Scale Ticks (-6.0 °C to +6.0 °C)
+  readonly anomTickM6 = computed(() => this.i18n.formatTemp(-6.0, 'delta', true));
   readonly anomTickM3 = computed(() => this.i18n.formatTemp(-3.0, 'delta', true));
-  readonly anomTickM15 = computed(() => this.i18n.formatTemp(-1.5, 'delta', true));
   readonly anomTick0 = computed(() => this.i18n.formatTemp(0.0, 'delta', false));
-  readonly anomTickP15 = computed(() => this.i18n.formatTemp(1.5, 'delta', true));
   readonly anomTickP3 = computed(() => this.i18n.formatTemp(3.0, 'delta', true));
+  readonly anomTickP6 = computed(() => this.i18n.formatTemp(6.0, 'delta', true));
 
   // Official Design System Thermal SST Scale Ticks (-2.0 °C to +35.0 °C)
   readonly sstTickMin = computed(() => this.i18n.formatTemp(-2.0, 'temp', false));

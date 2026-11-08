@@ -229,7 +229,9 @@ export class SstDataService {
       const zmB = this.getFrameZonalMean(pair.indexB)[y];
       return zmA + (zmB - zmA) * pair.t;
     }
-    return this.rowZm[y];
+    const solarMonth = (month - 2.8) * (2 * Math.PI / 12);
+    const seasonAmp = 4.5 * Math.sin(Math.abs(lat) * (Math.PI / 90));
+    return this.rowZm[y] + seasonAmp * Math.sin(solarMonth);
   }
 
   /**

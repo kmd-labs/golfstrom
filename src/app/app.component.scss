@@ -328,11 +328,13 @@
     &--anomaly {
       background: linear-gradient(
         to right,
-        color("anom-m3") 0%,
-        color("anom-m1-5") 25%,
-        color("anom-0") 50%,
-        color("anom-p1-5") 75%,
-        color("anom-p3") 100%
+        var(--color-anom-m6) 0%,
+        var(--color-anom-m3) 25%,
+        var(--color-anom-m1) 41.7%,
+        var(--color-anom-0) 50%,
+        var(--color-anom-p1) 58.3%,
+        var(--color-anom-p3) 75%,
+        var(--color-anom-p6) 100%
       );
     }
   }
