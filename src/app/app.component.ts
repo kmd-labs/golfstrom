@@ -291,7 +291,7 @@ export class AppComponent implements OnInit {
       const cityB = (t as any)[p.cityBKey] || p.cityBKey;
       options.push({
         value: `cross-section:${p.id}`,
-        label: `${p.lat.toFixed(0)}°N: ${cityA} ↔ ${cityB}`,
+        label: `${cityA} – ${cityB}`,
         icon: Activity,
         badge: `${p.lat.toFixed(0)}°N`
       });
@@ -367,9 +367,12 @@ export class AppComponent implements OnInit {
         const p = this.state.selectedPair();
         const cityA = t[p.cityAKey] || p.cityAKey;
         const cityB = t[p.cityBKey] || p.cityBKey;
-        return `${p.lat.toFixed(0)}°N: ${cityA} ↔ ${cityB}`;
+        return `${cityA} – ${cityB}`;
       }),
-      subtitle: computed(() => this.i18n.t().summarySubtitle),
+      subtitle: computed(() => {
+        const p = this.state.selectedPair();
+        return `${p.lat.toFixed(1)}°N · ${this.i18n.t().summarySubtitle}`;
+      }),
       component: PairModalComponent,
       size: 'md',
       actions: [

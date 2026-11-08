@@ -2,20 +2,6 @@
 @let p = currentPair;
 
 <div class="pair-modal">
-  <!-- Transect Selector Tabs for All 4 Pairs -->
-  <div class="pair-modal__tabs" role="tablist">
-    @for (item of pairs; track item.id) {
-      <button
-        type="button"
-        class="pair-modal__tab"
-        [class.pair-modal__tab--active]="item.id === p.id"
-        (click)="selectPair(item)">
-        <span class="pair-modal__tab-lat">{{ item.lat.toFixed(0) }}°N</span>
-        <span class="pair-modal__tab-names">{{ getCityName(item.cityAKey) }} ↔ {{ getCityName(item.cityBKey) }}</span>
-      </button>
-    }
-  </div>
-
   <div class="pair-modal__grid">
     <!-- West Atlantic City -->
     <div class="pair-modal__card">

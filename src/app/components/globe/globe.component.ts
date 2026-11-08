@@ -829,8 +829,6 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     const activeId = this.state.selectedPair().id;
     const isMobile = this.bp.mobile();
-    const opActive = this.theme.getTokenOpacity('pin-active', 0.8);
-    const opDefault = this.theme.getTokenOpacity('pin-default', 0.5);
 
     for (const p of this.pins) {
       const data = p.data;
@@ -838,10 +836,9 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       const tex = isActive ? this.pinTexActive! : this.pinTexDefault!;
       const baseScale = isMobile ? 1.4 : 0.8;
       const scale = isActive ? baseScale * 1.3 : baseScale;
-      const opacity = isActive ? opActive : opDefault;
 
       const spA = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity })
+        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity: 1.0 })
       );
       spA.scale.set(scale, scale, 1);
       spA.position.copy(p.posA);
@@ -849,7 +846,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       p.spriteA = spA;
 
       const spB = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity })
+        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity: 1.0 })
       );
       spB.scale.set(scale, scale, 1);
       spB.position.copy(p.posB);
@@ -1090,6 +1087,12 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const elements = this.pinElements;
     const cw = this.canvasWidth;
     const ch = this.canvasHeight;
+    const activeId = this.state.selectedPair().id;
+    const hoverId = this.hoverPin?.id;
+
+    const opActive = this.theme.getTokenOpacity('pin-active', 0.8);
+    const opHover = this.theme.getTokenOpacity('pin-hover', 0.7);
+    const opDefault = this.theme.getTokenOpacity('pin-default', 0.5);
 
     for (let i = 0; i < this.pins.length; i++) {
       const p = this.pins[i];
@@ -1105,12 +1108,18 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
           p.lastVisible = false;
         }
       } else {
-        const opacity = this.math.clamp((facing - 0.1) / 0.35, 0, 1);
+        const horizonFactor = this.math.clamp((facing - 0.1) / 0.35, 0, 1);
         this.pv.copy(p.worldPos).project(this.camera);
         const sx = Math.round(((this.pv.x + 1) * 0.5) * cw);
         const sy = Math.round(((1 - this.pv.y) * 0.5) * ch);
         el.style.transform = `translate3d(${sx}px, ${sy}px, 0) translate(-50%, -120%)`;
-        el.style.opacity = opacity.toFixed(2);
+
+        const isActive = p.data.id === activeId;
+        const isHovered = p.data.id === hoverId;
+        const baseOp = isActive ? opActive : (isHovered ? opHover : opDefault);
+        const finalOp = baseOp * horizonFactor;
+        el.style.opacity = finalOp.toFixed(2);
+
         if (p.lastVisible !== true) {
           el.style.pointerEvents = 'auto';
           p.lastVisible = true;
@@ -1224,24 +1233,19 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const hoverId = this.hoverPin?.id;
     const isMobile = this.bp.mobile();
 
-    const opActive = this.theme.getTokenOpacity('pin-active', 0.8);
-    const opHover = this.theme.getTokenOpacity('pin-hover', 0.7);
-    const opDefault = this.theme.getTokenOpacity('pin-default', 0.5);
-
     for (const p of this.pins) {
       const isActive = p.data.id === activeId;
       const isHovered = p.data.id === hoverId;
       const tex = isActive ? this.pinTexActive : this.pinTexDefault;
       const baseScale = isMobile ? 1.4 : 0.8;
       const scale = isActive ? baseScale * 1.3 : (isHovered ? baseScale * 1.15 : baseScale);
-      const opacity = isActive ? opActive : (isHovered ? opHover : opDefault);
 
       if (p.spriteA) {
         if (p.spriteA.material.map !== tex) {
           p.spriteA.material.map = tex;
           p.spriteA.material.needsUpdate = true;
         }
-        p.spriteA.material.opacity = opacity;
+        p.spriteA.material.opacity = 1.0;
         p.spriteA.scale.set(scale, scale, 1);
       }
 
@@ -1250,7 +1254,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
           p.spriteB.material.map = tex;
           p.spriteB.material.needsUpdate = true;
         }
-        p.spriteB.material.opacity = opacity;
+        p.spriteB.material.opacity = 1.0;
         p.spriteB.scale.set(scale, scale, 1);
       }
     }
@@ -1265,6 +1269,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.hoverPair.set(hit);
       this.canvasRef.nativeElement.style.cursor = (hit || this.inspectedPoint) ? 'pointer' : '';
       this.updatePinVisuals();
+      this.updatePinsDom();
     }
   }
 
@@ -1273,6 +1278,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.hoverPin = pair;
       this.hoverPair.set(pair);
       this.updatePinVisuals();
+      this.updatePinsDom();
     }
   }
 
@@ -1281,6 +1287,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.hoverPin = null;
       this.hoverPair.set(null);
       this.updatePinVisuals();
+      this.updatePinsDom();
     }
   }
 
@@ -1290,12 +1297,9 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
   getPairTitle(pair: LatitudePairPin): string {
     const t = this.i18n.t() as any;
-    if (this.bp.mobile() && pair.countryAKey && pair.countryBKey) {
-      const cA = t[pair.countryAKey] || t[pair.cityAKey] || pair.id;
-      const cB = t[pair.countryBKey] || t[pair.cityBKey] || pair.id;
-      return `${cA} ↔ ${cB}`;
-    }
-    return t[pair.titleKey] || pair.id;
+    const cityA = t[pair.cityAKey] || pair.cityAKey;
+    const cityB = t[pair.cityBKey] || pair.cityBKey;
+    return `${cityA} – ${cityB}`;
   }
 
   handleResize() {
