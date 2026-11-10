@@ -28,75 +28,54 @@
     height: 100%;
   }
 
-  &__callout {
+  &__nav-btn {
     position: absolute;
-    top: calc(16px + #{$control-height} + 12px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    width: min(440px, calc(100vw - 32px));
-    padding: 10px 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 15;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: radius("pill");
     @include glass-panel;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    border: 1px solid color("line");
+    color: color("text-bright");
+    cursor: pointer;
     pointer-events: auto;
-    transition: transform transition("fast");
-
-    @include respond-to("mobile") {
-      top: calc(12px + #{$control-height} + 6px);
-      padding: 8px 12px;
-      gap: 4px;
-    }
+    transition: transform transition("fast"), color transition("fast"), background transition("fast"), box-shadow transition("fast");
 
     &:hover {
-      transform: translateX(-50%) translateY(-1px);
-    }
-
-    &-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    &-icon {
+      transform: translateY(-50%) scale(1.08);
       color: color("accent");
+      box-shadow: shadow("md");
     }
 
-    &-title {
-      font-size: font-size("xs");
-      font-weight: font-weight("semibold");
-      color: color("text-bright");
-      flex: 1;
+    &:active {
+      transform: translateY(-50%) scale(0.94);
     }
 
-    &-badge {
-      font-family: $font-family-mono;
-      font-size: font-size("xxs");
-      font-weight: font-weight("bold");
-      color: color("accent");
-      background: rgba(211, 116, 0, 0.12);
-      border: 1px solid rgba(211, 116, 0, 0.35);
-      border-radius: radius("pill");
-      padding: 1px 6px;
+    &--prev {
+      left: 18px;
     }
 
-    &-anomaly {
-      font-size: font-size("xxs");
-      font-weight: font-weight("medium");
-      color: color("accent");
-    }
-
-    &-desc {
-      margin: 0;
-      font-size: font-size("xxs");
-      line-height: 1.35;
-      color: color("text-desc");
+    &--next {
+      right: 18px;
     }
 
     @include respond-to("mobile") {
-      width: 200px;
-      padding: 6px 8px;
+      width: 36px;
+      height: 36px;
+
+      &--prev {
+        left: 10px;
+      }
+
+      &--next {
+        right: 10px;
+      }
     }
   }
 
