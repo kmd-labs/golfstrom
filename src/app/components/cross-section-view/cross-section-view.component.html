@@ -9,20 +9,24 @@
       (pointermove)="onPointerMove($event)"
       (pointerleave)="onPointerLeave()"></canvas>
 
-    <!-- Centered Gulf Stream Peak Callout Window -->
-    <div class="cross-section__callout glass-panel">
-      <div class="cross-section__callout-header">
-        <lucide-icon [img]="flameIcon" [size]="14" class="cross-section__callout-icon"></lucide-icon>
-        <span class="cross-section__callout-title">{{ t.gulfStreamPeak }}</span>
-        <span class="cross-section__callout-badge">{{ gulfStreamTempFormatted() }}</span>
-      </div>
-      <div class="cross-section__callout-anomaly">
-        <span>★ {{ t.anomLegendTitle }}: {{ gulfStreamAnomalyFormatted() }}</span>
-      </div>
-      <p class="cross-section__callout-desc">
-        {{ t.gulfStreamPeakDesc }}
-      </p>
-    </div>
+    <!-- Lateral Navigation Chevrons (Mobile & Desktop) to switch between cross-sections -->
+    <button
+      type="button"
+      class="cross-section__nav-btn cross-section__nav-btn--prev glass-panel"
+      [attr.aria-label]="t.prevTransect"
+      [title]="t.prevTransect"
+      (click)="prevPair()">
+      <lucide-icon [img]="chevronLeftIcon" [size]="20"></lucide-icon>
+    </button>
+
+    <button
+      type="button"
+      class="cross-section__nav-btn cross-section__nav-btn--next glass-panel"
+      [attr.aria-label]="t.nextTransect"
+      [title]="t.nextTransect"
+      (click)="nextPair()">
+      <lucide-icon [img]="chevronRightIcon" [size]="20"></lucide-icon>
+    </button>
 
     <!-- Interactive Crosshair Tooltip -->
     @if (hoverInfo()) {

@@ -10,7 +10,7 @@ import {
   signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, Wind, Flame } from 'lucide-angular';
+import { LucideAngularModule, Wind, Flame, ChevronLeft, ChevronRight } from 'lucide-angular';
 import { ThemeService } from '@kmd/design-system/services/theme.service';
 
 import { BreakpointService } from '@kmd/design-system';
@@ -64,6 +64,16 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
   readonly pairs = LATITUDE_PAIRS;
   readonly windIcon = Wind;
   readonly flameIcon = Flame;
+  readonly chevronLeftIcon = ChevronLeft;
+  readonly chevronRightIcon = ChevronRight;
+
+  prevPair() {
+    this.state.prevPair();
+  }
+
+  nextPair() {
+    this.state.nextPair();
+  }
 
   // Active pair details
   readonly activePair = computed(() => this.state.selectedPair());

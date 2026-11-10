@@ -231,13 +231,13 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     const isLand = isMobileLandscape();
     const portrait = !isLand && (this.canvasWidth / (this.canvasHeight || 1) < 0.95 || isAtMost('mobile'));
-    const initialDist = portrait ? 30 : isLand ? 22 : 26;
+    const initialDist = portrait ? 38 : isLand ? 26 : 33;
     this.lastLayoutMode = isLand ? 'landscape' : portrait ? 'portrait' : 'desktop';
 
     // Target position: centered on North Atlantic (lon -40°, lat 38°)
     this.math.pos(-40, 38, initialDist, this.introTargetPos);
-    // Start position: slightly more west (lon -65°, lat 30°) and slightly zoomed out (1.22x distance)
-    this.math.pos(-65, 30, initialDist * 1.22, this.introStartPos);
+    // Start position: slightly more west (lon -65°, lat 30°) and slightly zoomed out (1.18x distance)
+    this.math.pos(-65, 30, initialDist * 1.18, this.introStartPos);
 
     this.camera.position.copy(this.introStartPos);
     this.isIntroAnimating = true;
@@ -714,9 +714,13 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     ctx.stroke();
 
     if (land) {
-      // Land temperature is always enabled:
-      // Continents are transparent so underlying globeMesh temperatures shine through,
-      // with semi-transparent mountain relief highlights/shadows on top.
+      // 1. Solid continent mask: guarantees that underlying ocean SST colors do not leak or bleed into land
+      ctx.beginPath();
+      path(land);
+      ctx.fillStyle = this.theme.getTokenColor('globe-land-fill', '#e2e8f0');
+      ctx.fill();
+
+      // 2. Shaded mountain relief overlay on top of land
       const reliefCanvas = this.buildReliefLayer();
       if (reliefCanvas) {
         ctx.save();
@@ -727,7 +731,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
         ctx.restore();
       }
 
-      // Coastlines (crisp continent borders)
+      // 3. Coastlines (crisp continent borders)
       ctx.beginPath();
       path(land);
       ctx.strokeStyle = this.theme.getTokenColor('globe-land-stroke', 'rgba(15, 23, 42, 0.35)');
@@ -855,6 +859,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.pinGroup.add(spB);
       p.spriteB = spB;
     }
+    this.updatePinScales();
   }
 
   private initInspectPin() {
@@ -907,6 +912,10 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     if (this.inspectPin) {
       this.inspectPin.position.copy(p);
       this.inspectPin.visible = true;
+      if (this.camera) {
+        const distInspect = this.camera.position.distanceTo(p);
+        this.inspectPin.scale.setScalar((0.48 / 33.0) * distInspect);
+      }
     }
     this.inspectedPoint = { lon, lat, p };
     this.sstData.fetchExactPointAirSeries(lon, lat);
@@ -1162,6 +1171,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.camera.position.lerpVectors(this.introStartPos, this.introTargetPos, ease);
       this.controls.update();
       this.updatePinsDom();
+      this.updatePinScales();
       if (progress >= 1) {
         this.isIntroAnimating = false;
         this.lastCamPos.copy(this.camera.position);
@@ -1169,10 +1179,11 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     } else {
       this.controls.update();
 
-      // Fast check: only recalculate pin screen positions when camera actually moves
+      // Fast check: only recalculate pin screen positions and scales when camera actually moves
       const camMoved = this.camera.position.distanceToSquared(this.lastCamPos) > 1e-5;
       if (camMoved) {
         this.updatePinsDom();
+        this.updatePinScales();
         this.lastCamPos.copy(this.camera.position);
       }
     }
@@ -1229,18 +1240,52 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private updatePinVisuals() {
-    if (!this.pinTexActive || !this.pinTexDefault) return;
+  /**
+   * Dynamically rescales pin sprites proportional to camera distance.
+   * Keeps pins at a constant, zoom-independent screen pixel size across all zoom levels.
+   */
+  private updatePinScales() {
+    if (!this.camera) return;
+    const camPos = this.camera.position;
     const activeId = this.state.selectedPair().id;
     const hoverId = this.hoverPin?.id;
     const isMobile = this.bp.mobile();
+    const refDist = 33.0;
 
     for (const p of this.pins) {
       const isActive = p.data.id === activeId;
       const isHovered = p.data.id === hoverId;
-      const tex = isActive ? this.pinTexActive : this.pinTexDefault;
       const baseScale = isMobile ? 1.4 : 0.8;
-      const scale = isActive ? baseScale * 1.3 : (isHovered ? baseScale * 1.15 : baseScale);
+      const multiplier = isActive ? 1.3 : isHovered ? 1.15 : 1.0;
+      const targetScale = baseScale * multiplier;
+
+      if (p.spriteA) {
+        const distA = camPos.distanceTo(p.posA);
+        const sA = (targetScale / refDist) * distA;
+        p.spriteA.scale.set(sA, sA, 1);
+      }
+
+      if (p.spriteB) {
+        const distB = camPos.distanceTo(p.posB);
+        const sB = (targetScale / refDist) * distB;
+        p.spriteB.scale.set(sB, sB, 1);
+      }
+    }
+
+    if (this.inspectPin && this.inspectPin.visible && this.inspectedPoint) {
+      const distInspect = camPos.distanceTo(this.inspectedPoint.p);
+      const sInspect = (0.48 / refDist) * distInspect;
+      this.inspectPin.scale.setScalar(sInspect);
+    }
+  }
+
+  private updatePinVisuals() {
+    if (!this.pinTexActive || !this.pinTexDefault) return;
+    const activeId = this.state.selectedPair().id;
+
+    for (const p of this.pins) {
+      const isActive = p.data.id === activeId;
+      const tex = isActive ? this.pinTexActive : this.pinTexDefault;
 
       if (p.spriteA) {
         if (p.spriteA.material.map !== tex) {
@@ -1248,7 +1293,6 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
           p.spriteA.material.needsUpdate = true;
         }
         p.spriteA.material.opacity = 1.0;
-        p.spriteA.scale.set(scale, scale, 1);
       }
 
       if (p.spriteB) {
@@ -1257,9 +1301,10 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
           p.spriteB.material.needsUpdate = true;
         }
         p.spriteB.material.opacity = 1.0;
-        p.spriteB.scale.set(scale, scale, 1);
       }
     }
+
+    this.updatePinScales();
   }
 
   onPointerMove(e: PointerEvent) {
@@ -1320,7 +1365,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     if (this.camera && this.renderer) {
       if (this.lastLayoutMode && this.lastLayoutMode !== layoutMode) {
-        const targetDist = portrait ? 30 : isLand ? 22 : 26;
+        const targetDist = portrait ? 38 : isLand ? 26 : 33;
         this.camera.position.setLength(targetDist);
       }
       this.lastLayoutMode = layoutMode;
@@ -1329,6 +1374,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(w, h, false);
       this.updatePinsDom();
+      this.updatePinScales();
     }
   }
 }

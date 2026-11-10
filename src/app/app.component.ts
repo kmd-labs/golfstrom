@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   LucideAngularModule,
@@ -341,12 +341,42 @@ export class AppComponent implements OnInit {
     }))
   );
 
+  private minSplashElapsed = false;
+  private splashFinished = false;
+
+  constructor() {
+    effect(() => {
+      const sstLoaded = this.sstData.isLoaded();
+      const mapLoaded = this.state.mapLoaded();
+      if (sstLoaded && mapLoaded && this.minSplashElapsed && !this.splashFinished) {
+        this.finishLoading();
+      }
+    });
+  }
+
   ngOnInit() {
-    // Reveal visualization stage after loading
+    // Reveal visualization stage after dataset and map landmask are ready.
+    // Minimum 1500ms display ensures clean brand reveal and prevents initial empty ocean flicker on mobile devices.
     setTimeout(() => {
-      this.splash.setProgress(100);
-      this.splash.finish();
-    }, 700);
+      this.minSplashElapsed = true;
+      if (this.sstData.isLoaded() && this.state.mapLoaded()) {
+        this.finishLoading();
+      }
+    }, 1500);
+
+    // Failsafe timeout to prevent splash from hanging indefinitely on network failure
+    setTimeout(() => {
+      if (!this.splashFinished) {
+        this.finishLoading();
+      }
+    }, 6000);
+  }
+
+  private finishLoading() {
+    if (this.splashFinished) return;
+    this.splashFinished = true;
+    this.splash.setProgress(100);
+    this.splash.finish();
   }
 
   openAbout() {
