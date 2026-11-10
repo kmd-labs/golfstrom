@@ -28,6 +28,7 @@ import { isAtMost, isMobileLandscape } from '@kmd/design-system/utils/breakpoint
 import { I18nService } from '../../core/i18n/i18n.service';
 import { LATITUDE_PAIRS } from '../../core/constants/golfstrom-data';
 import { LatitudePairPin } from '../../core/models/golfstrom.model';
+import { AnalyticsService } from '../../core/services/analytics.service';
 
 interface PinDisplay {
   data: LatitudePairPin;
@@ -62,6 +63,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   readonly tooltip = inject(TooltipService);
   readonly i18n = inject(I18nService);
   readonly bp = inject(BreakpointService);
+  readonly analytics = inject(AnalyticsService);
   private readonly ngZone = inject(NgZone);
 
   readonly Math = Math;
@@ -1293,6 +1295,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
   onPinClick(pair: LatitudePairPin) {
     this.state.selectPair(pair);
+    this.analytics.track('latitude_pair_selected', { pair_id: pair.id });
   }
 
   getPairTitle(pair: LatitudePairPin): string {

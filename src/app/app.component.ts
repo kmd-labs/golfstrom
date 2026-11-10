@@ -41,6 +41,7 @@ import { SettingsPopupComponent } from './components/settings-popup/settings-pop
 import { ViewMode } from './core/models/golfstrom.model';
 import { LATITUDE_PAIRS, PLAYBACK_SPEEDS } from './core/constants/golfstrom-data';
 import { SstDataService } from './core/services/sst-data.service';
+import { AnalyticsService } from './core/services/analytics.service';
 
 @Component({
   selector: 'app-root',
@@ -70,6 +71,7 @@ export class AppComponent implements OnInit {
   readonly splash = inject(SplashService);
   readonly state = inject(GolfstromStateService);
   readonly sstData = inject(SstDataService);
+  readonly analytics = inject(AnalyticsService);
 
   readonly globeIcon = Globe;
   readonly activityIcon = Activity;
@@ -306,11 +308,28 @@ export class AppComponent implements OnInit {
   onViewChange(value: string) {
     if (value === 'globe') {
       this.state.setViewMode('globe');
+      this.analytics.track('view_changed', { view: 'globe' });
     } else if (value.startsWith('cross-section:')) {
       const id = value.split(':')[1];
       this.state.selectPairById(id);
       this.state.setViewMode('cross-section');
+      this.analytics.track('view_changed', { view: 'cross-section', pair_id: id });
     }
+  }
+
+  toggleSstMode() {
+    this.state.toggleSstMode();
+    this.analytics.track('temperature_mode_changed', { mode: this.state.sstMode() });
+  }
+
+  togglePlayback() {
+    this.state.togglePlay();
+    this.analytics.track('playback_toggled', { playing: this.state.isPlaying() });
+  }
+
+  setPlaybackSpeed(speed: number) {
+    this.state.setPlaybackSpeed(speed);
+    this.analytics.track('playback_speed_changed', { speed: this.state.playbackSpeed() });
   }
 
 
@@ -331,10 +350,12 @@ export class AppComponent implements OnInit {
   }
 
   openAbout() {
+    this.analytics.track('about_opened');
     this.about.open({ lang: this.i18n.lang() });
   }
 
   openSettings() {
+    this.analytics.track('settings_opened');
     this.popup.open({
       id: 'settings',
       title: computed(() => this.i18n.t().settingsTitle),
@@ -344,6 +365,7 @@ export class AppComponent implements OnInit {
   }
 
   openGlossary() {
+    this.analytics.track('glossary_opened');
     this.popup.open({
       id: 'glossary',
       title: computed(() => this.i18n.t().glTitle),
@@ -360,6 +382,7 @@ export class AppComponent implements OnInit {
   }
 
   openSummary() {
+    this.analytics.track('summary_opened', { pair_id: this.state.selectedPair().id });
     this.popup.open({
       id: 'summary',
       title: computed(() => {
@@ -381,7 +404,7 @@ export class AppComponent implements OnInit {
           variant: 'default',
           hot: true,
           onClick: () => {
-            this.state.setViewMode('cross-section');
+            this.onViewChange(`cross-section:${this.state.selectedPair().id}`);
           }
         },
         {
@@ -393,6 +416,7 @@ export class AppComponent implements OnInit {
   }
 
   openSources() {
+    this.analytics.track('data_sources_opened');
     this.popup.open({
       id: 'sources',
       title: computed(() => this.i18n.t().dataSourcesTitle),
