@@ -2,7 +2,7 @@
   "source": "Open-Meteo.com & NOAA OISST v2.1",
   "sourceUrl": "https://open-meteo.com/",
   "sstSourceUrl": "https://www.ncei.noaa.gov/products/optimum-interpolation-sst",
-  "fetchedAt": "2026-11-14T12:10:45.642Z",
+  "fetchedAt": "2026-11-15T12:45:05.446Z",
   "grid": {
     "step": 0.5,
     "nLat": 360,
@@ -380,7 +380,7 @@
     {
       "index": 51,
       "id": "now",
-      "date": "2026-11-12",
+      "date": "2026-11-13",
       "s": 1.4,
       "nino34": 3.4,
       "now": true
