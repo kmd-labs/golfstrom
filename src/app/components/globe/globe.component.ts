@@ -885,7 +885,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       const scale = isActive ? baseScale * 1.3 : baseScale;
 
       const spA = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity: 1.0 })
+        new THREE.SpriteMaterial({ map: tex, depthTest: true, depthWrite: false, transparent: true, opacity: 1.0 })
       );
       spA.scale.set(scale, scale, 1);
       spA.position.copy(p.posA);
@@ -893,7 +893,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       p.spriteA = spA;
 
       const spB = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity: 1.0 })
+        new THREE.SpriteMaterial({ map: tex, depthTest: true, depthWrite: false, transparent: true, opacity: 1.0 })
       );
       spB.scale.set(scale, scale, 1);
       spB.position.copy(p.posB);
@@ -1318,12 +1318,14 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       const targetScale = baseScale * multiplier;
 
       if (p.spriteA) {
+        p.spriteA.visible = this.facingOf(p.posA) > 0.02;
         const distA = camPos.distanceTo(p.posA);
         const sA = (targetScale / refDist) * distA;
         p.spriteA.scale.set(sA, sA, 1);
       }
 
       if (p.spriteB) {
+        p.spriteB.visible = this.facingOf(p.posB) > 0.02;
         const distB = camPos.distanceTo(p.posB);
         const sB = (targetScale / refDist) * distB;
         p.spriteB.scale.set(sB, sB, 1);
