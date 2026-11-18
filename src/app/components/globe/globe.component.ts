@@ -83,6 +83,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private landMat?: THREE.MeshLambertMaterial;
   private glowMat?: THREE.ShaderMaterial;
   private bokehMat?: THREE.PointsMaterial;
+  private bokehGeo?: THREE.BufferGeometry;
   private loadedLandFeature: any = null;
   private landMask: Uint8Array | null = null;
   private relief: { data: Uint8Array; w: number; h: number; base: number } | null = null;
@@ -188,9 +189,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
         this.glowMat.uniforms['uOpacity'].value = dark ? 0.42 : 0.32;
       }
       if (this.bokehMat) {
-        const dark = this.theme.isDark();
-        this.bokehMat.opacity = dark ? 0.18 : 0.32;
-        this.bokehMat.color.set('#ffffff');
+        this.updateBokehTheme();
       }
       if (this.landCanvas) {
         this.drawLand(this.loadedLandFeature);
@@ -370,29 +369,21 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     tex.colorSpace = THREE.SRGBColorSpace;
 
     const count = 220;
-    const pGeo = new THREE.BufferGeometry();
+    this.bokehGeo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     const v = new THREE.Vector3();
-    const tints = ['primary-200', 'info-200', 'primary-100', 'warning-100'];
-    const fallbacks = ['#bfdbfe', '#bae6fd', '#dbeafe', '#fed7aa'];
-    const colors = tints.map((t, i) => new THREE.Color(this.theme.getTokenColor(t, fallbacks[i])));
 
     for (let i = 0; i < count; i++) {
       v.randomDirection().multiplyScalar(125 + Math.random() * 180);
       pos[i * 3] = v.x;
       pos[i * 3 + 1] = v.y;
       pos[i * 3 + 2] = v.z;
-      const colEntry = colors[i % colors.length];
-      col[i * 3] = colEntry.r;
-      col[i * 3 + 1] = colEntry.g;
-      col[i * 3 + 2] = colEntry.b;
     }
 
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    this.bokehGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.bokehGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
 
-    const dark = this.theme.isDark();
     this.bokehMat = new THREE.PointsMaterial({
       map: tex,
       size: 58,
@@ -400,11 +391,33 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       color: '#ffffff',
       vertexColors: true,
       transparent: true,
-      opacity: dark ? 0.18 : 0.32,
+      opacity: 0.32,
       depthWrite: false
     });
-    const points = new THREE.Points(pGeo, this.bokehMat);
+    this.updateBokehTheme();
+    const points = new THREE.Points(this.bokehGeo, this.bokehMat);
     this.scene.add(points);
+  }
+
+  private updateBokehTheme() {
+    if (!this.bokehGeo || !this.bokehMat) return;
+    const dark = this.theme.isDark();
+    const colors = dark
+      ? ['#1d4ed8', '#0e7490', '#3730a3', '#9a3412'].map(hex => new THREE.Color(hex))
+      : ['primary-200', 'info-200', 'primary-100', 'warning-100'].map((t, i) =>
+          new THREE.Color(this.theme.getTokenColor(t, ['#bfdbfe', '#bae6fd', '#dbeafe', '#fed7aa'][i]))
+        );
+
+    const colAttr = this.bokehGeo.getAttribute('color') as THREE.BufferAttribute;
+    const arr = colAttr.array as Float32Array;
+    for (let i = 0; i < colAttr.count; i++) {
+      const c = colors[i % colors.length];
+      arr[i * 3] = c.r;
+      arr[i * 3 + 1] = c.g;
+      arr[i * 3 + 2] = c.b;
+    }
+    colAttr.needsUpdate = true;
+    this.bokehMat.opacity = dark ? 0.26 : 0.32;
   }
 
   private initSstData() {
