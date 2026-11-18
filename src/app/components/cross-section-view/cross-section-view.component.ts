@@ -340,6 +340,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     const month = this.state.month();
     const mode = this.state.sstMode();
     const font = this.theme.getFontFamily();
+    const isDark = this.theme.isDark();
     const t = this.i18n.t();
 
     // Layout geometry
@@ -361,9 +362,15 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     // 1. Atmosphere Gradient Background
     const skyGrad = ctx.createLinearGradient(0, 0, 0, seaY);
-    skyGrad.addColorStop(0, '#e0f2fe');
-    skyGrad.addColorStop(0.7, '#f5f7fb');
-    skyGrad.addColorStop(1, '#ffffff');
+    if (isDark) {
+      skyGrad.addColorStop(0, '#070b14');
+      skyGrad.addColorStop(0.7, '#0d1526');
+      skyGrad.addColorStop(1, '#142033');
+    } else {
+      skyGrad.addColorStop(0, '#e0f2fe');
+      skyGrad.addColorStop(0.7, '#f5f7fb');
+      skyGrad.addColorStop(1, '#ffffff');
+    }
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, W, seaY);
 
@@ -489,7 +496,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     }
 
     // 5. Sea Surface Line
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.45)';
+    ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.35)' : 'rgba(15, 23, 42, 0.45)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(mLeft, seaY);
@@ -568,13 +575,13 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     // 9. Grid & Depth Labels
     ctx.font = `500 11px ${font}`;
-    ctx.fillStyle = '#64748b';
+    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
     ctx.textAlign = 'right';
 
     const depths = [0, 1000, 2000, 3000, 4000];
     for (const d of depths) {
       const dy = depthToY(d);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.16)' : 'rgba(255, 255, 255, 0.2)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(mLeft, dy);
@@ -600,7 +607,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       const by = isAbove ? altToY(Math.min(bathy.elevM / 1000, 3.8)) : depthToY(bathy.depthM);
 
       const islName = (t as any)[isl.nameKey] || isl.nameKey;
-      ctx.fillStyle = isAbove ? '#0f172a' : '#cbd5e1';
+      ctx.fillStyle = isAbove ? (isDark ? '#e2e8f0' : '#0f172a') : '#cbd5e1';
       ctx.font = `600 11px ${font}`;
       ctx.textAlign = 'center';
       ctx.fillText(islName, ix, isAbove ? by - 8 : by + 16);
@@ -612,7 +619,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     }
 
     // Prevailing Westerlies label in sky
-    ctx.fillStyle = '#2563eb';
+    ctx.fillStyle = isDark ? '#60a5fa' : '#2563eb';
     ctx.font = `600 12px ${font}`;
     ctx.textAlign = 'center';
     ctx.fillText(t.westerliesLabel, mLeft + plotW * 0.5, altToY(9.5));
@@ -648,7 +655,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       ctx.beginPath();
       ctx.arc(hover.x, hover.y, 4, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.restore();
