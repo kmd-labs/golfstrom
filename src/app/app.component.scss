@@ -418,6 +418,10 @@
     text-align: right;
     line-height: 1;
 
+    :host-context([data-theme="dark"]) & {
+      color: color("accent");
+    }
+
     @include respond-to("mobile") {
       min-width: 44px;
     }
