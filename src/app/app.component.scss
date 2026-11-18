@@ -63,14 +63,6 @@
     width: 260px;
   }
 
-  @include respond-to("tablet") {
-    &__settings,
-    &__view {
-      height: 38px;
-      padding: 2px;
-    }
-  }
-
   @include respond-to("mobile") {
     top: 10px;
     left: 8px;
@@ -78,16 +70,12 @@
 
     &__settings,
     &__view {
-      height: 34px;
-    }
-
-    &__settings {
+      height: 38px;
       padding: 2px;
     }
 
     &__view {
       width: 175px;
-      padding: 0;
     }
 
     &.header--brand-hovered,
