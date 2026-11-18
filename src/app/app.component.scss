@@ -52,6 +52,8 @@
   &__view {
     display: inline-flex;
     align-items: center;
+    height: 42px;
+    box-sizing: border-box;
     padding: 4px;
     border-radius: radius("pill");
     transition: opacity transition("fast"), visibility transition("fast");
@@ -61,29 +63,31 @@
     width: 260px;
   }
 
+  @include respond-to("tablet") {
+    &__settings,
+    &__view {
+      height: 38px;
+      padding: 2px;
+    }
+  }
+
   @include respond-to("mobile") {
     top: 10px;
     left: 8px;
     right: 8px;
 
-    &__brand {
-      height: 38px;
-      padding: 3px;
+    &__settings,
+    &__view {
+      height: 34px;
     }
 
-    &__brand-btn {
-      height: 32px;
-      padding: 0 8px;
-      gap: 6px;
-    }
-
-    &__app-name,
-    &__divider {
-      display: none;
+    &__settings {
+      padding: 2px;
     }
 
     &__view {
       width: 175px;
+      padding: 0;
     }
   }
 }
