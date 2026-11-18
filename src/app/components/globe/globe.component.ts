@@ -185,8 +185,10 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       }
       if (this.glowMat) {
         const dark = this.theme.isDark();
-        this.glowMat.uniforms['c'].value.set(this.theme.getTokenColor('globe-glow', '#0f172a'));
-        this.glowMat.uniforms['uOpacity'].value = dark ? 0.42 : 0.32;
+        this.glowMat.uniforms['c'].value.set(
+          dark ? '#9a3412' : this.theme.getTokenColor('globe-glow', '#0f172a')
+        );
+        this.glowMat.uniforms['uOpacity'].value = dark ? 0.34 : 0.32;
       }
       if (this.bokehMat) {
         this.updateBokehTheme();
@@ -311,8 +313,12 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const dark = this.theme.isDark();
     this.glowMat = new THREE.ShaderMaterial({
       uniforms: {
-        c: { value: new THREE.Color(this.theme.getTokenColor('globe-glow', '#0f172a')) },
-        uOpacity: { value: dark ? 0.42 : 0.32 },
+        c: {
+          value: new THREE.Color(
+            dark ? '#9a3412' : this.theme.getTokenColor('globe-glow', '#0f172a')
+          )
+        },
+        uOpacity: { value: dark ? 0.34 : 0.32 },
         uPower: { value: 2.0 }
       },
       vertexShader: `
