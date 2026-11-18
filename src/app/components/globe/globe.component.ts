@@ -888,7 +888,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       const scale = isActive ? baseScale * 1.3 : baseScale;
 
       const spA = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: tex, depthTest: true, depthWrite: false, transparent: true, opacity: 1.0 })
+        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity: 1.0 })
       );
       spA.scale.set(scale, scale, 1);
       spA.position.copy(p.posA);
@@ -896,7 +896,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       p.spriteA = spA;
 
       const spB = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: tex, depthTest: true, depthWrite: false, transparent: true, opacity: 1.0 })
+        new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, opacity: 1.0 })
       );
       spB.scale.set(scale, scale, 1);
       spB.position.copy(p.posB);
