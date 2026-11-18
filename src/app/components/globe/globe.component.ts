@@ -175,8 +175,9 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     });
 
     effect(() => {
-      // Update WebGL scene colors and land/SST textures when theme mode changes
+      // Update WebGL scene colors, LUTs, and land/SST textures when theme mode changes
       this.theme.mode();
+      this.math.refreshLutsFromTokens();
       if (this.scene) {
         this.scene.background = new THREE.Color(this.theme.getTokenColor('globe-bg', '#f5f7fb'));
       }
