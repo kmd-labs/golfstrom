@@ -197,13 +197,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     const W = rect.width;
     const H = rect.height;
-    const seaY = H * 0.52;
-    const skyH = seaY;
-    const oceanH = H - seaY;
-
-    const mLeft = Math.max(50, W * 0.06);
-    const mRight = Math.max(50, W * 0.06);
-    const plotW = W - mLeft - mRight;
+    const { seaY, skyH, oceanH, mLeft, plotW } = this.getPlotMetrics(W, H);
 
     if (x < mLeft || x > mLeft + plotW) {
       this.hoverInfo.set(null);
@@ -229,7 +223,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       depthM = Math.round(dNorm * 4000);
       temp = this.sampleWaterTemp(pair, lon, depthM, month);
     } else {
-      const aNorm = Math.min(1, Math.max(0, (seaY - y) / (skyH - 30)));
+      const aNorm = Math.min(1, Math.max(0, (seaY - y) / (skyH - 20)));
       altKm = Math.round(aNorm * 12 * 10) / 10;
       const sst = this.sstData.sampleRealSst(lon, pair.lat, month) ?? this.math.getSst(lon, pair.lat, month);
       // Environmental lapse rate ~6.5°C per km
@@ -327,6 +321,25 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     return abyssalT + (sst - abyssalT) * decay;
   }
 
+  /**
+   * Computes vertical & horizontal plot bounds dynamically above the bottom dock
+   * so depth grid lines and city labels are never clipped by the timeline HUD.
+   */
+  private getPlotMetrics(W: number, H: number) {
+    const dockEl = typeof document !== 'undefined' ? document.querySelector('.dock-wrap') : null;
+    const dockTop = dockEl ? dockEl.getBoundingClientRect().top : H - 180;
+    const plotTop = 52;
+    const plotBottom = Math.max(plotTop + 180, Math.min(H - 24, dockTop - 8));
+    const usableH = plotBottom - plotTop;
+    const seaY = plotTop + usableH * 0.48;
+    const skyH = seaY - plotTop;
+    const oceanH = plotBottom - seaY;
+    const mLeft = Math.max(50, W * 0.06);
+    const mRight = Math.max(50, W * 0.06);
+    const plotW = W - mLeft - mRight;
+    return { plotTop, plotBottom, seaY, skyH, oceanH, mLeft, mRight, plotW };
+  }
+
   private draw(dt: number) {
     const rect = this.boxRef?.nativeElement.getBoundingClientRect();
     if (!rect || rect.width <= 0 || rect.height <= 0) return;
@@ -344,13 +357,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     const t = this.i18n.t();
 
     // Layout geometry
-    const seaY = H * 0.52;
-    const skyH = seaY;
-    const oceanH = H - seaY;
-
-    const mLeft = Math.max(50, W * 0.06);
-    const mRight = Math.max(50, W * 0.06);
-    const plotW = W - mLeft - mRight;
+    const { plotBottom, seaY, skyH, oceanH, mLeft, plotW } = this.getPlotMetrics(W, H);
 
     const lonA = pair.lonA;
     const lonB = pair.lonB;
@@ -358,7 +365,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     const lonToX = (lon: number) => mLeft + ((lon - lonA) / lonSpan) * plotW;
     const depthToY = (d: number) => seaY + (d / 4000) * (oceanH - 25);
-    const altToY = (km: number) => seaY - (km / 12) * (skyH - 30);
+    const altToY = (km: number) => seaY - (km / 12) * (skyH - 20);
 
     // 1. Atmosphere Gradient Background
     const skyGrad = ctx.createLinearGradient(0, 0, 0, seaY);
@@ -590,13 +597,13 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       ctx.fillText(`${d} m`, mLeft - 8, dy + 4);
     }
 
-    // Longitude / City labels along bottom
+    // Longitude / City labels along bottom (above dock)
     ctx.textAlign = 'center';
-    ctx.fillText(`${Math.abs(lonA).toFixed(0)}°W (${this.getPairCityName(pair.cityAKey)})`, mLeft, H - 8);
+    ctx.fillText(`${Math.abs(lonA).toFixed(0)}°W (${this.getPairCityName(pair.cityAKey)})`, mLeft, plotBottom - 8);
     ctx.fillText(
       `${Math.abs(lonB).toFixed(0)}°${lonB < 0 ? 'W' : 'E'} (${this.getPairCityName(pair.cityBKey)})`,
       mLeft + plotW,
-      H - 8
+      plotBottom - 8
     );
 
     // Bedrock feature badges & labels
