@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, effect, inject } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   LucideAngularModule,
@@ -90,6 +90,7 @@ export class AppComponent implements OnInit {
   readonly latitudePairs = LATITUDE_PAIRS;
 
   readonly isPopupOpen = computed(() => this.popup.config() !== null);
+  readonly brandHovered = signal(false);
 
   /** Continuous Date object computed from keyframe timeline or calendar year */
   readonly currentDate = computed<Date>(() => {

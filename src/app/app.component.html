@@ -4,11 +4,16 @@
 
 <main class="viewport" [class.has-popup-open]="isPopupOpen()">
   <!-- Top HUD: Left Logotype + Language, Right View Switcher -->
-  <header class="header" [class.header--popup-open]="isPopupOpen()">
+  <header
+    class="header"
+    [class.header--popup-open]="isPopupOpen()"
+    [class.header--brand-hovered]="brandHovered()">
     <div class="header__left">
       <app-brand
         [lang]="i18n.lang()"
-        (btnClick)="openAbout()">
+        (mouseenter)="brandHovered.set(true)"
+        (mouseleave)="brandHovered.set(false)"
+        (btnClick)="brandHovered.set(false); openAbout()">
       </app-brand>
 
       <div class="header__settings glass-panel">

@@ -89,6 +89,17 @@
       width: 175px;
       padding: 0;
     }
+
+    &.header--brand-hovered,
+    &:has(.header__brand--expanded:not(.header__brand--popup-open)) {
+      .header__settings,
+      .header__view {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity transition("fast"), visibility transition("fast");
+      }
+    }
   }
 }
 
