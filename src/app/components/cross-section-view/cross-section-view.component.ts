@@ -597,11 +597,15 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       ctx.fillText(`${d} m`, mLeft - 8, dy + 4);
     }
 
-    // Longitude / City labels along bottom (above dock)
-    ctx.textAlign = 'center';
-    ctx.fillText(`${Math.abs(lonA).toFixed(0)}°W (${this.getPairCityName(pair.cityAKey)})`, mLeft, plotBottom - 8);
+    // Longitude / City labels along bottom (above dock), aligned inward so they never clip
+    const shortName = (key: string) =>
+      this.getPairCityName(key).split(',')[0].replace(/\s*\([^)]*\)/g, '').trim();
+
+    ctx.textAlign = 'left';
+    ctx.fillText(`${Math.abs(lonA).toFixed(0)}°W (${shortName(pair.cityAKey)})`, mLeft, plotBottom - 8);
+    ctx.textAlign = 'right';
     ctx.fillText(
-      `${Math.abs(lonB).toFixed(0)}°${lonB < 0 ? 'W' : 'E'} (${this.getPairCityName(pair.cityBKey)})`,
+      `${Math.abs(lonB).toFixed(0)}°${lonB < 0 ? 'W' : 'E'} (${shortName(pair.cityBKey)})`,
       mLeft + plotW,
       plotBottom - 8
     );
