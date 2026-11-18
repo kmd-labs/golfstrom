@@ -90,13 +90,14 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   pins: PinDisplay[] = LATITUDE_PAIRS.map(data => {
     const posA = this.math.pos(data.lonA, data.lat, this.math.R * 1.025, new THREE.Vector3());
     const posB = this.math.pos(data.lonB, data.lat, this.math.R * 1.025, new THREE.Vector3());
-    const midLon = (data.lonA + data.lonB) / 2;
-    const midPos = this.math.pos(midLon, data.lat, this.math.R * 1.03, new THREE.Vector3());
+    // Anchor the pair description above the westbound pin (North America) so it doesn't obscure ocean SST
+    const westLon = Math.min(data.lonA, data.lonB);
+    const labelPos = this.math.pos(westLon, data.lat, this.math.R * 1.03, new THREE.Vector3());
     return {
       data,
       posA,
       posB,
-      worldPos: midPos,
+      worldPos: labelPos,
       screenX: -9999,
       screenY: -9999,
       visible: false,
@@ -243,11 +244,12 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
 
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.08;
+    this.controls.dampingFactor = 0.14;
     this.controls.minDistance = 11.0;
     this.controls.maxDistance = 60.0;
     this.controls.enablePan = false;
     this.controls.target.set(0, 0, 0);
+    this.updateOrbitRotateSpeed();
     this.controls.update();
 
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0xdbe4f0, 1.3);
@@ -258,6 +260,18 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     this.scene.add(dirLight);
 
     this.initGlowAndBokeh();
+  }
+
+  /**
+   * Scales OrbitControls rotateSpeed with camera distance so dragging tracks
+   * 1:1 with the globe surface under the pointer at all zoom levels.
+   */
+  private updateOrbitRotateSpeed() {
+    if (!this.controls || !this.camera) return;
+    const dist = this.camera.position.length();
+    const halfFovRad = THREE.MathUtils.degToRad(this.camera.fov * 0.5);
+    const speed = ((dist - this.math.R) * Math.tan(halfFovRad)) / (Math.PI * this.math.R);
+    this.controls.rotateSpeed = Math.max(0.02, speed);
   }
 
   /**
@@ -1175,6 +1189,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
         this.lastCamPos.copy(this.camera.position);
       }
     } else {
+      this.updateOrbitRotateSpeed();
       this.controls.update();
 
       // Fast check: only recalculate pin screen positions and scales when camera actually moves
