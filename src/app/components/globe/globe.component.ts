@@ -81,6 +81,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private landCanvas!: HTMLCanvasElement;
   private landTex!: THREE.CanvasTexture;
   private landMat?: THREE.MeshLambertMaterial;
+  private glowMat?: THREE.ShaderMaterial;
   private loadedLandFeature: any = null;
   private landMask: Uint8Array | null = null;
   private relief: { data: Uint8Array; w: number; h: number; base: number } | null = null;
@@ -170,6 +171,25 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
         requestAnimationFrame(() => this.handleResize());
       } else {
         this.clearInspectedPoint();
+      }
+    });
+
+    effect(() => {
+      // Update WebGL scene colors and land/SST textures when theme mode changes
+      this.theme.mode();
+      if (this.scene) {
+        this.scene.background = new THREE.Color(this.theme.getTokenColor('globe-bg', '#f5f7fb'));
+      }
+      if (this.glowMat) {
+        this.glowMat.uniforms['c'].value.set(this.theme.getTokenColor('globe-glow', '#0f172a'));
+      }
+      if (this.landCanvas) {
+        this.drawLand(this.loadedLandFeature);
+      }
+      if (this.texData && this.sstTex) {
+        untracked(() => {
+          this.recolorSstTexture(this.state.month(), this.state.sstMode());
+        });
       }
     });
   }
@@ -280,7 +300,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
    */
   private initGlowAndBokeh() {
     const R = this.math.R;
-    const glowMat = new THREE.ShaderMaterial({
+    this.glowMat = new THREE.ShaderMaterial({
       uniforms: {
         c: { value: new THREE.Color(this.theme.getTokenColor('globe-glow', '#0f172a')) },
         uOpacity: { value: 0.22 },
@@ -315,7 +335,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       depthWrite: false
     });
 
-    const haloMesh = new THREE.Mesh(new THREE.SphereGeometry(R * 1.15, 64, 32), glowMat);
+    const haloMesh = new THREE.Mesh(new THREE.SphereGeometry(R * 1.15, 64, 32), this.glowMat);
     this.scene.add(haloMesh);
 
     this.initBokeh();

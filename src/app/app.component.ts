@@ -33,6 +33,7 @@ import { ToggleComponent } from '@kmd/design-system/ui/toggle/toggle.component';
 import { I18nService } from './core/i18n/i18n.service';
 import { Lang } from './core/i18n/i18n.types';
 import { GolfstromStateService } from './core/services/golfstrom-state.service';
+import { ThemePrefService } from './core/services/theme-pref.service';
 import { GlobeComponent } from './components/globe/globe.component';
 import { CrossSectionViewComponent } from './components/cross-section-view/cross-section-view.component';
 import { GlossaryComponent } from './components/glossary/glossary.component';
@@ -72,6 +73,7 @@ export class AppComponent implements OnInit {
   readonly splash = inject(SplashService);
   readonly state = inject(GolfstromStateService);
   readonly sstData = inject(SstDataService);
+  readonly themePref = inject(ThemePrefService);
 
   readonly globeIcon = Globe;
   readonly activityIcon = Activity;
