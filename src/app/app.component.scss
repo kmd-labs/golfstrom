@@ -186,6 +186,24 @@
     opacity: 0.8;
   }
 
+  &__anomaly-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+  }
+
+  &__anomaly-icon {
+    color: color("text-dim");
+    display: inline-flex;
+    align-items: center;
+    transition: color transition("fast");
+
+    &--active {
+      color: color("accent");
+    }
+  }
+
   &__anomaly-toggle {
     flex: none;
     white-space: nowrap;
