@@ -183,12 +183,14 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
         this.scene.background = new THREE.Color(this.theme.getTokenColor('globe-bg', '#f5f7fb'));
       }
       if (this.glowMat) {
+        const dark = this.theme.isDark();
         this.glowMat.uniforms['c'].value.set(this.theme.getTokenColor('globe-glow', '#0f172a'));
+        this.glowMat.uniforms['uOpacity'].value = dark ? 0.42 : 0.32;
       }
       if (this.bokehMat) {
         const dark = this.theme.isDark();
-        this.bokehMat.opacity = dark ? 0.1 : 0.32;
-        this.bokehMat.color.set(dark ? '#64748b' : '#ffffff');
+        this.bokehMat.opacity = dark ? 0.18 : 0.32;
+        this.bokehMat.color.set('#ffffff');
       }
       if (this.landCanvas) {
         this.drawLand(this.loadedLandFeature);
@@ -307,11 +309,12 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
    */
   private initGlowAndBokeh() {
     const R = this.math.R;
+    const dark = this.theme.isDark();
     this.glowMat = new THREE.ShaderMaterial({
       uniforms: {
         c: { value: new THREE.Color(this.theme.getTokenColor('globe-glow', '#0f172a')) },
-        uOpacity: { value: 0.22 },
-        uPower: { value: 2.2 }
+        uOpacity: { value: dark ? 0.42 : 0.32 },
+        uPower: { value: 2.0 }
       },
       vertexShader: `
         varying vec3 vN;
@@ -394,10 +397,10 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       map: tex,
       size: 58,
       sizeAttenuation: true,
-      color: dark ? '#64748b' : '#ffffff',
+      color: '#ffffff',
       vertexColors: true,
       transparent: true,
-      opacity: dark ? 0.1 : 0.32,
+      opacity: dark ? 0.18 : 0.32,
       depthWrite: false
     });
     const points = new THREE.Points(pGeo, this.bokehMat);
