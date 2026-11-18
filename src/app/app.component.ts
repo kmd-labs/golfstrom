@@ -281,14 +281,18 @@ export class AppComponent implements OnInit {
     return `cross-section:${this.state.selectedPair().id}`;
   });
 
+  private shortCityName(full: string): string {
+    return full.split(',')[0].replace(/\s*\([^)]*\)/g, '').trim();
+  }
+
   readonly viewOptions = computed<DropdownOption<string>[]>(() => {
     const t = this.i18n.t();
     const options: DropdownOption<string>[] = [
       { value: 'globe', label: t.viewPrimary, icon: Globe }
     ];
     for (const p of LATITUDE_PAIRS) {
-      const cityA = (t as any)[p.cityAKey] || p.cityAKey;
-      const cityB = (t as any)[p.cityBKey] || p.cityBKey;
+      const cityA = this.shortCityName((t as any)[p.cityAKey] || p.cityAKey);
+      const cityB = this.shortCityName((t as any)[p.cityBKey] || p.cityBKey);
       options.push({
         value: `cross-section:${p.id}`,
         label: `${cityA} – ${cityB}`,
