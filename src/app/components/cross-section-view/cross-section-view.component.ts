@@ -607,6 +607,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     const shortName = (key: string) =>
       this.getPairCityName(key).split(',')[0].replace(/\s*\([^)]*\)/g, '').trim();
 
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#e2e8f0';
     ctx.textAlign = 'left';
     ctx.fillText(`${Math.abs(lonA).toFixed(0)}°W (${shortName(pair.cityAKey)})`, mLeft, plotBottom - 8);
     ctx.textAlign = 'right';
