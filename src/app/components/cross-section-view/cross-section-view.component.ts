@@ -219,8 +219,9 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     let temp = 0;
 
     if (isOcean) {
+      const maxDepth = this.getMaxDepth(pair);
       const dNorm = Math.min(1, Math.max(0, (y - seaY) / (oceanH - 25)));
-      depthM = Math.round(dNorm * 4000);
+      depthM = Math.round(dNorm * maxDepth);
       temp = this.sampleWaterTemp(pair, lon, depthM, month);
     } else {
       const aNorm = Math.min(1, Math.max(0, (seaY - y) / (skyH - 20)));
@@ -321,6 +322,11 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     return abyssalT + (sst - abyssalT) * decay;
   }
 
+  private getMaxDepth(pair: LatitudePairPin): number {
+    const deepest = pair.bathymetry?.reduce((m, b) => Math.max(m, b.depthM), 0) ?? 0;
+    return Math.max(4000, Math.ceil(deepest / 500) * 500);
+  }
+
   /**
    * Computes vertical & horizontal plot bounds dynamically above the bottom dock
    * so depth grid lines and city labels are never clipped by the timeline HUD.
@@ -363,8 +369,9 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     const lonB = pair.lonB;
     const lonSpan = lonB - lonA;
 
+    const maxDepth = this.getMaxDepth(pair);
     const lonToX = (lon: number) => mLeft + ((lon - lonA) / lonSpan) * plotW;
-    const depthToY = (d: number) => seaY + (d / 4000) * (oceanH - 25);
+    const depthToY = (d: number) => seaY + (d / maxDepth) * (oceanH - 25);
     const altToY = (km: number) => seaY - (km / 12) * (skyH - 20);
 
     // 1. Atmosphere Gradient Background
@@ -585,8 +592,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
     ctx.textAlign = 'right';
 
-    const depths = [0, 1000, 2000, 3000, 4000];
-    for (const d of depths) {
+    for (let d = 0; d <= maxDepth; d += 1000) {
       const dy = depthToY(d);
       ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.16)' : 'rgba(255, 255, 255, 0.2)';
       ctx.lineWidth = 1;
@@ -677,7 +683,8 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
    * Pre-renders the high-resolution ocean depth thermal cross-section into a 2D canvas buffer.
    */
   private renderOceanBuffer(pair: LatitudePairPin, month: number, mode: 'sst' | 'anomaly') {
-    const key = `${pair.id}_${month.toFixed(2)}_${mode}`;
+    const themeMode = this.theme.mode();
+    const key = `${pair.id}_${month.toFixed(2)}_${mode}_${themeMode}`;
     if (key === this.lastOceanKey && this.oceanImg) return;
     this.lastOceanKey = key;
 
@@ -691,6 +698,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     const lonA = pair.lonA;
     const lonSpan = pair.lonB - pair.lonA;
+    const maxDepth = this.getMaxDepth(pair);
 
     for (let px = 0; px < ow; px++) {
       const lon = lonA + (px / (ow - 1)) * lonSpan;
@@ -698,7 +706,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
       for (let py = 0; py < oh; py++) {
         const dNorm = py / (oh - 1);
-        const depthM = dNorm * 4000;
+        const depthM = dNorm * maxDepth;
 
         const temp = this.sampleWaterTemp(pair, lon, depthM, month);
         const val = mode === 'anomaly' ? (temp - zm) * Math.exp(-depthM / 1500) : temp;
