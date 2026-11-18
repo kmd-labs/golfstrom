@@ -186,21 +186,9 @@
     opacity: 0.8;
   }
 
-  &__anomaly-btn {
-    display: inline-flex;
-    align-items: center;
-
-    .dock__toggle-text {
-      white-space: nowrap;
-      font-size: font-size("xs");
-      line-height: 1;
-    }
-
-    @include respond-to("mobile") {
-      .dock__toggle-text {
-        display: none;
-      }
-    }
+  &__anomaly-toggle {
+    flex: none;
+    white-space: nowrap;
   }
 
   &__layers-dropdown {

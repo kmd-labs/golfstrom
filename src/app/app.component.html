@@ -58,18 +58,16 @@
         </div>
 
         <div class="dock__tools-group" role="group">
-          <!-- 1. Thermal Anomaly Toggle Button -->
-          <app-button
-            class="dock__anomaly-btn"
-            variant="toggle"
+          <!-- 1. Thermal Anomaly Toggle Switch -->
+          <app-toggle
+            class="dock__anomaly-toggle"
             size="sm"
-            [active]="state.sstMode() === 'anomaly'"
+            [checked]="state.sstMode() === 'anomaly'"
+            [label]="bp.mobile() ? '' : t.thermalAnomaly"
             [ariaLabel]="state.sstMode() === 'anomaly' ? t.sstModeAnomaly : t.sstModeAbsolute"
-            [appTooltip]="t.thermalAnomaly"
-            (btnClick)="state.toggleSstMode()">
-            <lucide-icon [img]="thermometerIcon" [size]="14"></lucide-icon>
-            <span class="dock__toggle-text">{{ t.thermalAnomaly }}</span>
-          </app-button>
+            [tooltipText]="t.thermalAnomaly"
+            (checkedChange)="state.toggleSstMode()">
+          </app-toggle>
 
           <span class="dock__tools-divider" aria-hidden="true"></span>
 

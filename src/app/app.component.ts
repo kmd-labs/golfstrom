@@ -29,6 +29,7 @@ import {
   SplashService,
   AboutService
 } from '@kmd/design-system';
+import { ToggleComponent } from '@kmd/design-system/ui/toggle/toggle.component';
 import { I18nService } from './core/i18n/i18n.service';
 import { Lang } from './core/i18n/i18n.types';
 import { GolfstromStateService } from './core/services/golfstrom-state.service';
@@ -50,6 +51,7 @@ import { SstDataService } from './core/services/sst-data.service';
     LucideAngularModule,
     BrandComponent,
     ButtonComponent,
+    ToggleComponent,
     DropdownComponent,
     PopupComponent,
     TimelineSliderComponent,
@@ -82,7 +84,6 @@ export class AppComponent implements OnInit {
   readonly summaryIcon = FileText;
   readonly layersIcon = Layers;
   readonly settingsIcon = Settings;
-  readonly thermometerIcon = Thermometer;
 
   readonly latitudePairs = LATITUDE_PAIRS;
 
