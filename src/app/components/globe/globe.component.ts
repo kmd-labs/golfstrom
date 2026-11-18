@@ -82,6 +82,7 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
   private landTex!: THREE.CanvasTexture;
   private landMat?: THREE.MeshLambertMaterial;
   private glowMat?: THREE.ShaderMaterial;
+  private bokehMat?: THREE.PointsMaterial;
   private loadedLandFeature: any = null;
   private landMask: Uint8Array | null = null;
   private relief: { data: Uint8Array; w: number; h: number; base: number } | null = null;
@@ -183,6 +184,11 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
       }
       if (this.glowMat) {
         this.glowMat.uniforms['c'].value.set(this.theme.getTokenColor('globe-glow', '#0f172a'));
+      }
+      if (this.bokehMat) {
+        const dark = this.theme.isDark();
+        this.bokehMat.opacity = dark ? 0.1 : 0.32;
+        this.bokehMat.color.set(dark ? '#64748b' : '#ffffff');
       }
       if (this.landCanvas) {
         this.drawLand(this.loadedLandFeature);
@@ -383,16 +389,18 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
 
-    const pMat = new THREE.PointsMaterial({
+    const dark = this.theme.isDark();
+    this.bokehMat = new THREE.PointsMaterial({
       map: tex,
       size: 58,
       sizeAttenuation: true,
+      color: dark ? '#64748b' : '#ffffff',
       vertexColors: true,
       transparent: true,
-      opacity: 0.32,
+      opacity: dark ? 0.1 : 0.32,
       depthWrite: false
     });
-    const points = new THREE.Points(pGeo, pMat);
+    const points = new THREE.Points(pGeo, this.bokehMat);
     this.scene.add(points);
   }
 
