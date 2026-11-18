@@ -4,11 +4,16 @@
 
 <main class="viewport" [class.has-popup-open]="isPopupOpen()">
   <!-- Top HUD: Left Logotype + Language, Right View Switcher -->
-  <header class="header" [class.header--popup-open]="isPopupOpen()">
+  <header
+    class="header"
+    [class.header--popup-open]="isPopupOpen()"
+    [class.header--brand-hovered]="brandHovered()">
     <div class="header__left">
       <app-brand
         [lang]="i18n.lang()"
-        (btnClick)="openAbout()">
+        (mouseenter)="brandHovered.set(true)"
+        (mouseleave)="brandHovered.set(false)"
+        (btnClick)="brandHovered.set(false); openAbout()">
       </app-brand>
 
       <div class="header__settings glass-panel">
@@ -58,18 +63,27 @@
         </div>
 
         <div class="dock__tools-group" role="group">
-          <!-- 1. Thermal Anomaly Toggle Button -->
-          <app-button
-            class="dock__anomaly-btn"
-            variant="toggle"
-            size="sm"
-            [active]="state.sstMode() === 'anomaly'"
-            [ariaLabel]="state.sstMode() === 'anomaly' ? t.sstModeAnomaly : t.sstModeAbsolute"
-            [appTooltip]="t.thermalAnomaly"
-            (btnClick)="toggleSstMode()">
-            <lucide-icon [img]="thermometerIcon" [size]="14"></lucide-icon>
-            <span class="dock__toggle-text">{{ t.thermalAnomaly }}</span>
-          </app-button>
+          <!-- 1. Thermal Anomaly Toggle Switch -->
+          <div class="dock__anomaly-wrap">
+            @if (bp.mobile()) {
+              <lucide-icon
+                class="dock__anomaly-icon"
+                [class.dock__anomaly-icon--active]="state.sstMode() === 'anomaly'"
+                [img]="thermoIcon"
+                [size]="14"
+                aria-hidden="true">
+              </lucide-icon>
+            }
+            <app-toggle
+              class="dock__anomaly-toggle"
+              size="sm"
+              [checked]="state.sstMode() === 'anomaly'"
+              [label]="bp.mobile() ? '' : t.thermalAnomaly"
+              [ariaLabel]="state.sstMode() === 'anomaly' ? t.sstModeAnomaly : t.sstModeAbsolute"
+              [tooltipText]="t.thermalAnomaly"
+              (checkedChange)="toggleSstMode()">
+            </app-toggle>
+          </div>
 
           <span class="dock__tools-divider" aria-hidden="true"></span>
 

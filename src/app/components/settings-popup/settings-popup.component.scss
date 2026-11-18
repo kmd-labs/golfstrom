@@ -25,6 +25,15 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+
+    &--stack {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      @include respond-to("mobile") {
+        grid-template-columns: 1fr;
+      }
+    }
   }
 
   &__option {
@@ -82,6 +91,10 @@
     font-weight: font-weight("bold");
     line-height: 1;
     transition: background transition("fast"), color transition("fast");
+
+    &--icon {
+      padding: 3px 4px;
+    }
   }
 
   &__name {

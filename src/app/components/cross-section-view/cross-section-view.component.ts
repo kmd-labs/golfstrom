@@ -197,13 +197,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     const W = rect.width;
     const H = rect.height;
-    const seaY = H * 0.52;
-    const skyH = seaY;
-    const oceanH = H - seaY;
-
-    const mLeft = Math.max(50, W * 0.06);
-    const mRight = Math.max(50, W * 0.06);
-    const plotW = W - mLeft - mRight;
+    const { seaY, skyH, oceanH, mLeft, plotW } = this.getPlotMetrics(W, H);
 
     if (x < mLeft || x > mLeft + plotW) {
       this.hoverInfo.set(null);
@@ -225,11 +219,12 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     let temp = 0;
 
     if (isOcean) {
+      const maxDepth = this.getMaxDepth(pair);
       const dNorm = Math.min(1, Math.max(0, (y - seaY) / (oceanH - 25)));
-      depthM = Math.round(dNorm * 4000);
+      depthM = Math.round(dNorm * maxDepth);
       temp = this.sampleWaterTemp(pair, lon, depthM, month);
     } else {
-      const aNorm = Math.min(1, Math.max(0, (seaY - y) / (skyH - 30)));
+      const aNorm = Math.min(1, Math.max(0, (seaY - y) / (skyH - 20)));
       altKm = Math.round(aNorm * 12 * 10) / 10;
       const sst = this.sstData.sampleRealSst(lon, pair.lat, month) ?? this.math.getSst(lon, pair.lat, month);
       // Environmental lapse rate ~6.5°C per km
@@ -327,6 +322,30 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     return abyssalT + (sst - abyssalT) * decay;
   }
 
+  private getMaxDepth(pair: LatitudePairPin): number {
+    const deepest = pair.bathymetry?.reduce((m, b) => Math.max(m, b.depthM), 0) ?? 0;
+    return Math.max(4000, Math.ceil(deepest / 500) * 500);
+  }
+
+  /**
+   * Computes vertical & horizontal plot bounds dynamically above the bottom dock
+   * so depth grid lines and city labels are never clipped by the timeline HUD.
+   */
+  private getPlotMetrics(W: number, H: number) {
+    const dockEl = typeof document !== 'undefined' ? document.querySelector('.dock-wrap') : null;
+    const dockTop = dockEl ? dockEl.getBoundingClientRect().top : H - 180;
+    const plotTop = 52;
+    const plotBottom = Math.max(plotTop + 180, Math.min(H - 24, dockTop - 8));
+    const usableH = plotBottom - plotTop;
+    const seaY = plotTop + usableH * 0.48;
+    const skyH = seaY - plotTop;
+    const oceanH = plotBottom - seaY;
+    const mLeft = Math.max(50, W * 0.06);
+    const mRight = Math.max(50, W * 0.06);
+    const plotW = W - mLeft - mRight;
+    return { plotTop, plotBottom, seaY, skyH, oceanH, mLeft, mRight, plotW };
+  }
+
   private draw(dt: number) {
     const rect = this.boxRef?.nativeElement.getBoundingClientRect();
     if (!rect || rect.width <= 0 || rect.height <= 0) return;
@@ -340,30 +359,32 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     const month = this.state.month();
     const mode = this.state.sstMode();
     const font = this.theme.getFontFamily();
+    const isDark = this.theme.isDark();
     const t = this.i18n.t();
 
     // Layout geometry
-    const seaY = H * 0.52;
-    const skyH = seaY;
-    const oceanH = H - seaY;
-
-    const mLeft = Math.max(50, W * 0.06);
-    const mRight = Math.max(50, W * 0.06);
-    const plotW = W - mLeft - mRight;
+    const { plotBottom, seaY, skyH, oceanH, mLeft, plotW } = this.getPlotMetrics(W, H);
 
     const lonA = pair.lonA;
     const lonB = pair.lonB;
     const lonSpan = lonB - lonA;
 
+    const maxDepth = this.getMaxDepth(pair);
     const lonToX = (lon: number) => mLeft + ((lon - lonA) / lonSpan) * plotW;
-    const depthToY = (d: number) => seaY + (d / 4000) * (oceanH - 25);
-    const altToY = (km: number) => seaY - (km / 12) * (skyH - 30);
+    const depthToY = (d: number) => seaY + (d / maxDepth) * (oceanH - 25);
+    const altToY = (km: number) => seaY - (km / 12) * (skyH - 20);
 
     // 1. Atmosphere Gradient Background
     const skyGrad = ctx.createLinearGradient(0, 0, 0, seaY);
-    skyGrad.addColorStop(0, '#e0f2fe');
-    skyGrad.addColorStop(0.7, '#f5f7fb');
-    skyGrad.addColorStop(1, '#ffffff');
+    if (isDark) {
+      skyGrad.addColorStop(0, '#070b14');
+      skyGrad.addColorStop(0.7, '#0d1526');
+      skyGrad.addColorStop(1, '#142033');
+    } else {
+      skyGrad.addColorStop(0, '#e0f2fe');
+      skyGrad.addColorStop(0.7, '#f5f7fb');
+      skyGrad.addColorStop(1, '#ffffff');
+    }
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, W, seaY);
 
@@ -489,7 +510,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     }
 
     // 5. Sea Surface Line
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.45)';
+    ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.35)' : 'rgba(15, 23, 42, 0.45)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(mLeft, seaY);
@@ -568,13 +589,12 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     // 9. Grid & Depth Labels
     ctx.font = `500 11px ${font}`;
-    ctx.fillStyle = '#64748b';
+    ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
     ctx.textAlign = 'right';
 
-    const depths = [0, 1000, 2000, 3000, 4000];
-    for (const d of depths) {
+    for (let d = 0; d <= maxDepth; d += 1000) {
       const dy = depthToY(d);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.16)' : 'rgba(255, 255, 255, 0.2)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(mLeft, dy);
@@ -583,13 +603,18 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       ctx.fillText(`${d} m`, mLeft - 8, dy + 4);
     }
 
-    // Longitude / City labels along bottom
-    ctx.textAlign = 'center';
-    ctx.fillText(`${Math.abs(lonA).toFixed(0)}°W (${this.getPairCityName(pair.cityAKey)})`, mLeft, H - 8);
+    // Longitude / City labels along bottom (above dock), aligned inward so they never clip
+    const shortName = (key: string) =>
+      this.getPairCityName(key).split(',')[0].replace(/\s*\([^)]*\)/g, '').trim();
+
+    ctx.fillStyle = isDark ? '#cbd5e1' : '#e2e8f0';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${Math.abs(lonA).toFixed(0)}°W (${shortName(pair.cityAKey)})`, mLeft, plotBottom - 8);
+    ctx.textAlign = 'right';
     ctx.fillText(
-      `${Math.abs(lonB).toFixed(0)}°${lonB < 0 ? 'W' : 'E'} (${this.getPairCityName(pair.cityBKey)})`,
+      `${Math.abs(lonB).toFixed(0)}°${lonB < 0 ? 'W' : 'E'} (${shortName(pair.cityBKey)})`,
       mLeft + plotW,
-      H - 8
+      plotBottom - 8
     );
 
     // Bedrock feature badges & labels
@@ -600,7 +625,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       const by = isAbove ? altToY(Math.min(bathy.elevM / 1000, 3.8)) : depthToY(bathy.depthM);
 
       const islName = (t as any)[isl.nameKey] || isl.nameKey;
-      ctx.fillStyle = isAbove ? '#0f172a' : '#cbd5e1';
+      ctx.fillStyle = isAbove ? (isDark ? '#e2e8f0' : '#0f172a') : '#cbd5e1';
       ctx.font = `600 11px ${font}`;
       ctx.textAlign = 'center';
       ctx.fillText(islName, ix, isAbove ? by - 8 : by + 16);
@@ -612,7 +637,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
     }
 
     // Prevailing Westerlies label in sky
-    ctx.fillStyle = '#2563eb';
+    ctx.fillStyle = isDark ? '#60a5fa' : '#2563eb';
     ctx.font = `600 12px ${font}`;
     ctx.textAlign = 'center';
     ctx.fillText(t.westerliesLabel, mLeft + plotW * 0.5, altToY(9.5));
@@ -648,7 +673,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
       ctx.beginPath();
       ctx.arc(hover.x, hover.y, 4, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = isDark ? '#0f172a' : '#ffffff';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.restore();
@@ -659,7 +684,8 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
    * Pre-renders the high-resolution ocean depth thermal cross-section into a 2D canvas buffer.
    */
   private renderOceanBuffer(pair: LatitudePairPin, month: number, mode: 'sst' | 'anomaly') {
-    const key = `${pair.id}_${month.toFixed(2)}_${mode}`;
+    const themeMode = this.theme.mode();
+    const key = `${pair.id}_${month.toFixed(2)}_${mode}_${themeMode}`;
     if (key === this.lastOceanKey && this.oceanImg) return;
     this.lastOceanKey = key;
 
@@ -673,6 +699,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
     const lonA = pair.lonA;
     const lonSpan = pair.lonB - pair.lonA;
+    const maxDepth = this.getMaxDepth(pair);
 
     for (let px = 0; px < ow; px++) {
       const lon = lonA + (px / (ow - 1)) * lonSpan;
@@ -680,7 +707,7 @@ export class CrossSectionViewComponent implements AfterViewInit, OnDestroy {
 
       for (let py = 0; py < oh; py++) {
         const dNorm = py / (oh - 1);
-        const depthM = dNorm * 4000;
+        const depthM = dNorm * maxDepth;
 
         const temp = this.sampleWaterTemp(pair, lon, depthM, month);
         const val = mode === 'anomaly' ? (temp - zm) * Math.exp(-depthM / 1500) : temp;

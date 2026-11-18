@@ -56,6 +56,10 @@ export interface Dict {
   settingsTitle: string;
   settingsSubtitle: string;
   settingsAria: string;
+  themeLabel: string;
+  themeAuto: string;
+  themeLight: string;
+  themeDark: string;
   temperatureUnit: string;
   unitCelsius: string;
   unitFahrenheit: string;

@@ -56,7 +56,7 @@
   &--hover {
     border-color: color("accent");
     box-shadow: 0 6px 20px color("shadow-heavy");
-    background: rgba(255, 255, 255, 0.94);
+    background: color("panel-bg-heavy");
   }
 
   &--active {
@@ -72,6 +72,20 @@
     .pin-label__diff {
       color: #2563eb;
       font-weight: font-weight("semibold");
+    }
+
+    :host-context([data-theme="dark"]) & {
+      background: color("panel-bg-heavy");
+      border-color: rgba(96, 165, 250, 0.45);
+      box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.3), 0 6px 20px color("shadow-heavy");
+
+      .pin-label__title {
+        color: color("text-main");
+      }
+
+      .pin-label__diff {
+        color: rgba(147, 197, 253, 0.82);
+      }
     }
   }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, effect, inject } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   LucideAngularModule,
@@ -29,9 +29,11 @@ import {
   SplashService,
   AboutService
 } from '@kmd/design-system';
+import { ToggleComponent } from '@kmd/design-system/ui/toggle/toggle.component';
 import { I18nService } from './core/i18n/i18n.service';
 import { Lang } from './core/i18n/i18n.types';
 import { GolfstromStateService } from './core/services/golfstrom-state.service';
+import { ThemePrefService } from './core/services/theme-pref.service';
 import { GlobeComponent } from './components/globe/globe.component';
 import { CrossSectionViewComponent } from './components/cross-section-view/cross-section-view.component';
 import { GlossaryComponent } from './components/glossary/glossary.component';
@@ -51,6 +53,7 @@ import { AnalyticsService } from './core/services/analytics.service';
     LucideAngularModule,
     BrandComponent,
     ButtonComponent,
+    ToggleComponent,
     DropdownComponent,
     PopupComponent,
     TimelineSliderComponent,
@@ -72,6 +75,7 @@ export class AppComponent implements OnInit {
   readonly state = inject(GolfstromStateService);
   readonly sstData = inject(SstDataService);
   readonly analytics = inject(AnalyticsService);
+  readonly themePref = inject(ThemePrefService);
 
   readonly globeIcon = Globe;
   readonly activityIcon = Activity;
@@ -84,11 +88,11 @@ export class AppComponent implements OnInit {
   readonly summaryIcon = FileText;
   readonly layersIcon = Layers;
   readonly settingsIcon = Settings;
-  readonly thermometerIcon = Thermometer;
 
   readonly latitudePairs = LATITUDE_PAIRS;
 
   readonly isPopupOpen = computed(() => this.popup.config() !== null);
+  readonly brandHovered = signal(false);
 
   /** Continuous Date object computed from keyframe timeline or calendar year */
   readonly currentDate = computed<Date>(() => {
@@ -283,14 +287,18 @@ export class AppComponent implements OnInit {
     return `cross-section:${this.state.selectedPair().id}`;
   });
 
+  private shortCityName(full: string): string {
+    return full.split(',')[0].replace(/\s*\([^)]*\)/g, '').trim();
+  }
+
   readonly viewOptions = computed<DropdownOption<string>[]>(() => {
     const t = this.i18n.t();
     const options: DropdownOption<string>[] = [
       { value: 'globe', label: t.viewPrimary, icon: Globe }
     ];
     for (const p of LATITUDE_PAIRS) {
-      const cityA = (t as any)[p.cityAKey] || p.cityAKey;
-      const cityB = (t as any)[p.cityBKey] || p.cityBKey;
+      const cityA = this.shortCityName((t as any)[p.cityAKey] || p.cityAKey);
+      const cityB = this.shortCityName((t as any)[p.cityBKey] || p.cityBKey);
       options.push({
         value: `cross-section:${p.id}`,
         label: `${cityA} – ${cityB}`,

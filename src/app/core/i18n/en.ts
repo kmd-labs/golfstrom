@@ -7,8 +7,12 @@ export const EN: Dict = {
 
   // Settings & Language
   settingsTitle: 'Settings',
-  settingsSubtitle: 'Language & units',
+  settingsSubtitle: 'Appearance, language & units',
   settingsAria: 'Settings',
+  themeLabel: 'Appearance',
+  themeAuto: 'Match system',
+  themeLight: 'Light',
+  themeDark: 'Dark',
   temperatureUnit: 'Temperature unit',
   unitCelsius: 'Celsius',
   unitFahrenheit: 'Fahrenheit',

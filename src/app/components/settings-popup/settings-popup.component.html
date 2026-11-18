@@ -1,6 +1,27 @@
 @let t = i18n.t();
 
 <div class="settings">
+  <!-- Appearance Section -->
+  <section class="settings__section">
+    <h3 class="settings__label">{{ t.themeLabel }}</h3>
+    <div class="settings__group settings__group--stack" role="radiogroup" [attr.aria-label]="t.themeLabel">
+      @for (th of themes(); track th.id) {
+        <button
+          type="button"
+          class="settings__option"
+          [class.settings__option--active]="themePref.pref() === th.id"
+          role="radio"
+          [attr.aria-checked]="themePref.pref() === th.id"
+          (click)="selectTheme(th.id)">
+          <span class="settings__badge settings__badge--icon" aria-hidden="true">
+            <lucide-icon [img]="th.icon" [size]="13"></lucide-icon>
+          </span>
+          <span class="settings__name">{{ th.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
   <!-- Language Section -->
   <section class="settings__section">
     <h3 class="settings__label">{{ t.changeLanguage }}</h3>
