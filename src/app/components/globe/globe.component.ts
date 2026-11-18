@@ -1113,14 +1113,15 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
     const activeId = this.state.selectedPair().id;
     const hoverId = this.hoverPin?.id;
 
-    const opActive = this.theme.getTokenOpacity('pin-active', 0.8);
-    const opHover = this.theme.getTokenOpacity('pin-hover', 0.7);
-    const opDefault = this.theme.getTokenOpacity('pin-default', 0.5);
-
     for (let i = 0; i < this.pins.length; i++) {
       const p = this.pins[i];
-      const facing = this.facingOf(p.worldPos);
-      const isVisible = facing > 0.1;
+      const facingA = this.facingOf(p.posA);
+      const facingB = this.facingOf(p.posB);
+      // Prefer the westbound pin (North America) so labels stay off the ocean;
+      // fall back to the eastbound pin if the westbound pin rotates behind the horizon.
+      const anchorPos = facingA > 0.05 ? p.posA : p.posB;
+      const facing = facingA > 0.05 ? facingA : facingB;
+      const isVisible = facing > 0.05;
       const el = elements[i];
       if (!el) continue;
 
@@ -1131,17 +1132,15 @@ export class GlobeComponent implements AfterViewInit, OnDestroy {
           p.lastVisible = false;
         }
       } else {
-        const horizonFactor = this.math.clamp((facing - 0.1) / 0.35, 0, 1);
-        this.pv.copy(p.worldPos).project(this.camera);
+        this.pv.copy(anchorPos).project(this.camera);
         const sx = Math.round(((this.pv.x + 1) * 0.5) * cw);
         const sy = Math.round(((1 - this.pv.y) * 0.5) * ch);
-        el.style.transform = `translate3d(${sx}px, ${sy}px, 0) translate(-50%, -120%)`;
+        el.style.transform = `translate3d(${sx}px, ${sy}px, 0) translate(-50%, -125%)`;
 
         const isActive = p.data.id === activeId;
         const isHovered = p.data.id === hoverId;
-        const baseOp = isActive ? opActive : (isHovered ? opHover : opDefault);
-        const finalOp = baseOp * horizonFactor;
-        el.style.opacity = finalOp.toFixed(2);
+        el.style.opacity = isActive ? '1' : (isHovered ? '0.96' : '0.92');
+        el.style.zIndex = isActive ? '3' : (isHovered ? '2' : '1');
 
         if (p.lastVisible !== true) {
           el.style.pointerEvents = 'auto';
